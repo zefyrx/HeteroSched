@@ -12,24 +12,14 @@ int main() {
 
     Job job1{1, {6, 12288}};
     Job job2{2, {3, 4096}};
+    Job job3{3, {10, 1024}};
 
-    const auto workerId1 = scheduler.schedule(job1);
-    if (workerId1) {
-        std::cout << "Job " << job1.jobId
-                  << " assigned to Worker " << *workerId1 << '\n';
-    } else {
-        std::cout << "Job " << job1.jobId
-                  << " could not be scheduled\n";
-    }
+    scheduler.submitJob(job1);
+    scheduler.submitJob(job2);
+    scheduler.submitJob(job3);
 
-    const auto workerId2 = scheduler.schedule(job2);
-    if (workerId2) {
-        std::cout << "Job " << job2.jobId
-                  << " assigned to Worker " << *workerId2 << '\n';
-    } else {
-        std::cout << "Job " << job2.jobId
-                  << " could not be scheduled\n";
-    }
+    std::cout << "Waiting jobs: "
+            << scheduler.waitingJobCount() << '\n';
 
     return 0;
 }

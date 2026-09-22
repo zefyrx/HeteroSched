@@ -9,7 +9,7 @@ std::optional<int> Scheduler::schedule(const Job& job) {
         return std::nullopt;
     }
 
-    for (auto& w : workers_) {          // 要用引用传递
+    for (auto& w : workers_) {          // 使用引用遍历，修改容器中的原对象
         if (w.allocate(job)) {
             return w.getId();
         }
@@ -20,4 +20,12 @@ std::optional<int> Scheduler::schedule(const Job& job) {
 
 std::size_t Scheduler::workerCount() const {
     return workers_.size();
+}
+
+void Scheduler::submitJob(const Job& job) {
+    waitingJobs_.push(job);
+}
+
+std::size_t Scheduler::waitingJobCount() const {
+    return waitingJobs_.size();
 }
