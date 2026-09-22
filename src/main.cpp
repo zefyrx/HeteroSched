@@ -1,32 +1,35 @@
 #include <iostream>
 
 #include "job.h"
+#include "scheduler.h"
 #include "worker.h"
 
-void printCanRun(const Worker& worker, const Job& job) {
-    std::cout << "Worker " << worker.getId()
-              << " can run Job " << job.jobId << ": "
-              << (worker.canRun(job) ? "yes" : "no")
-              << '\n';
-}
-
 int main() {
-    Worker worker1{1, {8, 16384}};
-    Worker worker2{2, {4, 8192}};
+    Scheduler scheduler;
 
-    Job job1{1, {2, 4096}};
-    Job job2{2, {6, 12288}};
-    Job job3{3, {10, 2048}};
+    scheduler.addWorker(Worker{1, {8, 16384}});
+    scheduler.addWorker(Worker{2, {4, 8192}});
 
-    printCanRun(worker1, job1);
-    printCanRun(worker1, job2);
-    printCanRun(worker1, job3);
+    Job job1{1, {6, 12288}};
+    Job job2{2, {3, 4096}};
 
-    std::cout << '\n';
+    const auto workerId1 = scheduler.schedule(job1);
+    if (workerId1) {
+        std::cout << "Job " << job1.jobId
+                  << " assigned to Worker " << *workerId1 << '\n';
+    } else {
+        std::cout << "Job " << job1.jobId
+                  << " could not be scheduled\n";
+    }
 
-    printCanRun(worker2, job1);
-    printCanRun(worker2, job2);
-    printCanRun(worker2, job3);
+    const auto workerId2 = scheduler.schedule(job2);
+    if (workerId2) {
+        std::cout << "Job " << job2.jobId
+                  << " assigned to Worker " << *workerId2 << '\n';
+    } else {
+        std::cout << "Job " << job2.jobId
+                  << " could not be scheduled\n";
+    }
 
     return 0;
 }

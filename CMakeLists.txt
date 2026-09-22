@@ -9,6 +9,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 add_executable(heterosched
     src/main.cpp
     src/worker.cpp
+    src/scheduler.cpp
 )
 
 target_include_directories(heterosched PRIVATE include)
