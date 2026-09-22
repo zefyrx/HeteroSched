@@ -29,3 +29,22 @@ void Scheduler::submitJob(const Job& job) {
 std::size_t Scheduler::waitingJobCount() const {
     return waitingJobs_.size();
 }
+
+std::optional<ScheduleResult> Scheduler::scheduleNext() {
+    if (waitingJobs_.empty()) {
+        return std::nullopt;
+    }
+
+    const Job& job = waitingJobs_.front();
+    const auto workerId = schedule(job);
+
+    if (workerId == std::nullopt) {
+        return std::nullopt;
+    }
+
+    const int jobId = job.jobId;
+
+    waitingJobs_.pop();
+
+    return ScheduleResult{jobId, workerId.value()};
+}

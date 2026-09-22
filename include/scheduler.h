@@ -9,12 +9,17 @@
 #include "job.h"
 #include "worker.h"
 
+struct ScheduleResult {
+    int jobId;
+    int workerId;
+};
+
 class Scheduler {
 public:
     void addWorker(const Worker& worker);
     void submitJob(const Job& job);
 
-    std::optional<int> schedule(const Job& job);
+    std::optional<ScheduleResult> scheduleNext();
 
     std::size_t workerCount() const;
     std::size_t waitingJobCount() const;
@@ -22,6 +27,8 @@ public:
 private:
     std::vector<Worker> workers_;
     std::queue<Job> waitingJobs_;
+
+    std::optional<int> schedule(const Job& job);
 };
 
 #endif
