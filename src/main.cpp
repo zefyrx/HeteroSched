@@ -5,31 +5,26 @@
 #include "worker.h"
 
 int main() {
-    Scheduler scheduler;
+    Scheduler firstFitScheduler{SchedulingPolicy::FirstFit};
+    Scheduler binPackScheduler{SchedulingPolicy::BinPack};
 
-    scheduler.addWorker(Worker{1, {8, 16384}});
-    scheduler.addWorker(Worker{2, {4, 8192}});
+    firstFitScheduler.addWorker(Worker{1, {8, 16384}});
+    firstFitScheduler.addWorker(Worker{2, {4, 8192}});
 
-    Job job1{1, {6, 12288}};
-    Job job2{2, {3, 4096}};
-    Job job3{3, {10, 1024}};
-    Job job4{4, {1, 1024}};
+    binPackScheduler.addWorker(Worker{1, {8, 16384}});
+    binPackScheduler.addWorker(Worker{2, {4, 8192}});
 
-    scheduler.submitJob(job1);
-    scheduler.submitJob(job2);
-    scheduler.submitJob(job3);
-    scheduler.submitJob(job4);
+    Job job{1, {2, 4096}};
 
-    std::cout << "Waiting jobs before scheduling: "
-          << scheduler.waitingJobCount() << '\n';
+    firstFitScheduler.submitJob(job);
+    binPackScheduler.submitJob(job);
 
-    while (const auto result = scheduler.scheduleNext()) {
-        std::cout << "Job " << result->jobId
-                << " assigned to Worker " << result->workerId << '\n';
-    }
+    const auto firstFitResult = firstFitScheduler.scheduleNext();
 
-    std::cout << "Waiting jobs after scheduling: "
-            << scheduler.waitingJobCount() << '\n';
+    const auto binPackResult = binPackScheduler.scheduleNext();
+
+    std::cout << "FirstFit assigned Job 1 to Worker " << firstFitResult.value().workerId << "\n";
+    std::cout << "BinPack assigned Job 1 to Worker " << binPackResult.value().workerId << "\n";
 
     return 0;
 }

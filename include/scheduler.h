@@ -9,6 +9,11 @@
 #include "job.h"
 #include "worker.h"
 
+enum class SchedulingPolicy {
+    FirstFit,
+    BinPack
+};
+
 struct ScheduleResult {
     int jobId;
     int workerId;
@@ -16,6 +21,9 @@ struct ScheduleResult {
 
 class Scheduler {
 public:
+    explicit Scheduler(
+        SchedulingPolicy policy = SchedulingPolicy::FirstFit);
+
     void addWorker(const Worker& worker);
     void submitJob(const Job& job);
 
@@ -27,9 +35,12 @@ public:
 private:
     std::vector<Worker> workers_;
     std::queue<Job> waitingJobs_;
+    SchedulingPolicy policy_;
 
     std::optional<int> schedule(const Job& job);
+    std::optional<std::size_t> selectWorker(const Job& job) const;
     std::optional<std::size_t> findFirstFitWorker(const Job& job) const;
+    std::optional<std::size_t> findBinPackWorker(const Job& job) const;
 };
 
 #endif
