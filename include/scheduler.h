@@ -29,6 +29,7 @@ private:
     std::queue<Job> waitingJobs_;
 
     std::optional<int> schedule(const Job& job);
+    std::optional<std::size_t> findFirstFitWorker(const Job& job) const;
 };
 
 #endif

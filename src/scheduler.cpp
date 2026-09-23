@@ -5,17 +5,19 @@ void Scheduler::addWorker(const Worker& worker) {
 }
 
 std::optional<int> Scheduler::schedule(const Job& job) {
-    if (workers_.empty()) {
+    const auto workerIndex = findFirstFitWorker(job);
+
+    if (workerIndex == std::nullopt) {
         return std::nullopt;
     }
 
-    for (auto& w : workers_) {          // 使用引用遍历，修改容器中的原对象
-        if (w.allocate(job)) {
-            return w.getId();
-        }
+    Worker& worker = workers_[workerIndex.value()];
+
+    if (!worker.allocate(job)) {
+        return std::nullopt;
     }
 
-    return std::nullopt;
+    return worker.getId();
 }
 
 std::size_t Scheduler::workerCount() const {
@@ -47,4 +49,14 @@ std::optional<ScheduleResult> Scheduler::scheduleNext() {
     waitingJobs_.pop();
 
     return ScheduleResult{jobId, workerId.value()};
+}
+
+std::optional<std::size_t> Scheduler::findFirstFitWorker(const Job& job) const {
+    for (std::size_t index = 0; index < workers_.size(); index++) {
+        if (workers_[index].canRun(job)) {
+            return index;
+        }
+    }
+
+    return std::nullopt;
 }
