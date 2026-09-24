@@ -29,6 +29,10 @@ const Resource& Worker::getAvailableResource() const {
     return availableResource_;
 }
 
+const Resource& Worker::getTotalResource() const {
+    return totalResource_;
+}
+
 bool Worker::release(const Job& job) {
     const int allocatedCpuCores = totalResource_.cpuCores - availableResource_.cpuCores;
     const int allocatedMemoryMB = totalResource_.memoryMB - availableResource_.memoryMB;

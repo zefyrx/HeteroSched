@@ -100,6 +100,45 @@ std::optional<std::size_t> Scheduler::findBinPackWorker(const Job& job) const {
     return bestIndex;
 }
 
+std::optional<std::size_t> Scheduler::findLeastAllocatedWorker(const Job& job) const {
+    std::optional<std::size_t> bestIndex;
+    double bestScore = 0.0;
+
+    for (std::size_t index = 0; index < workers_.size(); ++index) {
+        const Worker& worker = workers_[index];
+
+        if (!worker.canRun(job)) {
+            continue;
+        }
+
+        const Resource& total = worker.getTotalResource();
+
+        const Resource& available = worker.getAvailableResource();
+
+        // 计算加入 job 后已使用的 CPU
+        // total - available + job required
+        const int usedCpuAfterAllocation = total.cpuCores - available.cpuCores + job.requiredResource.cpuCores;
+
+        // 计算加入 job 后已使用的内存
+        const int usedMemoryAfterAllocation = total.memoryMB - available.memoryMB + job.requiredResource.memoryMB;
+
+        // 转换为 double，计算两个利用率
+        const double cpuUtilization = static_cast<double>(usedCpuAfterAllocation) / total.cpuCores;
+        const double memoryUtilization = static_cast<double>(usedMemoryAfterAllocation) / total.memoryMB;
+
+        // 两个利用率相加得到 score
+        const double score = cpuUtilization + memoryUtilization;
+
+        // 尚无候选，或 score 更小时更新最佳候选
+        if (!bestIndex || score < bestScore) {
+            bestIndex = index;
+            bestScore = score;
+        }
+    }
+
+    return bestIndex;
+}
+
 std::optional<std::size_t> Scheduler::selectWorker(const Job& job) const {
     switch (policy_) {
         case SchedulingPolicy::FirstFit:
@@ -107,6 +146,9 @@ std::optional<std::size_t> Scheduler::selectWorker(const Job& job) const {
 
         case SchedulingPolicy::BinPack:
             return findBinPackWorker(job);
+
+        case SchedulingPolicy::LeastAllocated:
+            return findLeastAllocatedWorker(job);
     }
 
     return std::nullopt;

@@ -14,6 +14,7 @@ public:
     bool allocate(const Job& job);
     bool release(const Job& job);
     const Resource& getAvailableResource() const;
+    const Resource& getTotalResource() const;
 
 private:
     int workerId_;

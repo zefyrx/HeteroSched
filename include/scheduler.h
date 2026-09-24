@@ -11,7 +11,8 @@
 
 enum class SchedulingPolicy {
     FirstFit,
-    BinPack
+    BinPack,
+    LeastAllocated
 };
 
 struct ScheduleResult {
@@ -41,6 +42,8 @@ private:
     std::optional<std::size_t> selectWorker(const Job& job) const;
     std::optional<std::size_t> findFirstFitWorker(const Job& job) const;
     std::optional<std::size_t> findBinPackWorker(const Job& job) const;
+    std::optional<std::size_t> findLeastAllocatedWorker(const Job& job) const;
+    
 };
 
 #endif
