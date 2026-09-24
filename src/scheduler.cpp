@@ -28,8 +28,14 @@ std::size_t Scheduler::workerCount() const {
     return workers_.size();
 }
 
-void Scheduler::submitJob(const Job& job) {
+bool Scheduler::submitJob(const Job& job) {
+    if (!submittedJobIds_.insert(job.jobId).second) {
+        return false;
+    }
+
     waitingJobs_.push(job);
+
+    return true;
 }
 
 std::size_t Scheduler::waitingJobCount() const {

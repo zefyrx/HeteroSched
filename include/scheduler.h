@@ -6,6 +6,7 @@
 #include <vector>
 #include <queue>
 #include <unordered_map>
+#include <unordered_set>
 
 #include "job.h"
 #include "worker.h"
@@ -30,8 +31,8 @@ public:
     // 将一个 Worker 注册到 Scheduler 管理的 Worker 列表中
     void addWorker(const Worker& worker);
 
-    // 将一个 Job 加入 FIFO 等待队列
-    void submitJob(const Job& job);
+    // 将 Job 加入 FIFO 等待队列；Scheduler 生命周期内 jobId 不可重复
+    bool submitJob(const Job& job);
 
     // 尝试调度队首 Job，并在成功后将其移入运行集合
     std::optional<ScheduleResult> scheduleNext();
@@ -55,6 +56,7 @@ private:
     };
 
     std::unordered_map<int, RunningJob> runningJobs_;       // <jobId, RunningJob>
+    std::unordered_set<int> submittedJobIds_;
 
     std::vector<Worker> workers_;
     std::queue<Job> waitingJobs_;

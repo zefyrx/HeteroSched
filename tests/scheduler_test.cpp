@@ -140,6 +140,52 @@ bool testUnschedulableJobRemainsQueued() {
     return true;
 }
 
+bool testRejectsDuplicateJobId() {
+    Scheduler scheduler{SchedulingPolicy::FirstFit};
+
+    scheduler.addWorker(Worker{1, {4, 8192}});
+    scheduler.addWorker(Worker{2, {8, 16384}});
+
+    const Job job{1, {2, 4096}};
+
+    if (!scheduler.submitJob(job)) {
+        return false;
+    }
+    
+    // 尝试再次提交该 job
+    if (scheduler.submitJob(job)) {
+        return false;
+    }
+
+    if (scheduler.waitingJobCount() != 1) {
+        return false;
+    }
+
+    const auto result = scheduler.scheduleNext();
+
+    if (!result) {
+        return false;
+    }
+
+    if (!scheduler.completeJob(result->jobId)) {
+        return false;
+    }
+
+    if (scheduler.waitingJobCount() != 0) {
+        return false;
+    }
+
+    if (scheduler.submitJob(job)) {
+        return false;
+    }
+
+    if (scheduler.waitingJobCount() != 0) {
+        return false;
+    }
+
+    return true;
+}
+
 int main() {
     if (!testBinPackChoosesTighterWorker()) {
         return 1;
@@ -154,6 +200,10 @@ int main() {
     }
 
     if (!testUnschedulableJobRemainsQueued()) {
+        return 1;
+    }
+
+    if (!testRejectsDuplicateJobId()) {
         return 1;
     }
 
