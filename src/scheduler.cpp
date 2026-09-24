@@ -8,7 +8,7 @@ void Scheduler::addWorker(const Worker& worker) {
     workers_.push_back(worker);
 }
 
-std::optional<int> Scheduler::schedule(const Job& job) {
+std::optional<std::size_t> Scheduler::schedule(const Job& job) {
     const auto workerIndex = selectWorker(job);
 
     if (workerIndex == std::nullopt) {
@@ -21,7 +21,7 @@ std::optional<int> Scheduler::schedule(const Job& job) {
         return std::nullopt;
     }
 
-    return worker.getId();
+    return workerIndex;
 }
 
 std::size_t Scheduler::workerCount() const {
@@ -42,17 +42,21 @@ std::optional<ScheduleResult> Scheduler::scheduleNext() {
     }
 
     const Job& job = waitingJobs_.front();
-    const auto workerId = schedule(job);
+    const auto workerIndex = schedule(job);
 
-    if (workerId == std::nullopt) {
+    if (!workerIndex) {
         return std::nullopt;
     }
 
     const int jobId = job.jobId;
+    const int workerId = workers_[workerIndex.value()].getId();
+
+    RunningJob runningJob{job, workerIndex.value()};
+    runningJobs_.emplace(jobId, runningJob);
 
     waitingJobs_.pop();
 
-    return ScheduleResult{jobId, workerId.value()};
+    return ScheduleResult{jobId, workerId};
 }
 
 std::optional<std::size_t> Scheduler::findFirstFitWorker(const Job& job) const {
@@ -152,4 +156,31 @@ std::optional<std::size_t> Scheduler::selectWorker(const Job& job) const {
     }
 
     return std::nullopt;
+}
+
+// Scheduler 收到通知，某个正在运行的任务已经执行完毕，负责处理任务执行结束后的状态和资源回收
+bool Scheduler::completeJob(int jobId) {
+    const auto it = runningJobs_.find(jobId);
+
+    // 没有这个运行任务时返回 false
+    if (it == runningJobs_.end()) {
+        return false;
+    }
+
+    RunningJob& runningJob = it->second;
+    Worker& worker = workers_[runningJob.workerIndex];
+
+    // 释放资源，失败则返回 false
+    if (!worker.release(runningJob.job)) {
+        return false;
+    }
+
+    // 释放成功后从 runningJobs_ 删除记录
+    runningJobs_.erase(jobId);
+
+    return true;
+}
+
+std::size_t Scheduler::runningJobCount() const {
+    return runningJobs_.size();
 }
