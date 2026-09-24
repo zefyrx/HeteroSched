@@ -15,12 +15,61 @@ bool testBinPackChoosesTighterWorker() {
     scheduler.submitJob(job);
     const auto result = scheduler.scheduleNext();
 
-    // 1. 检查 result 是否有值
-    // 2. 检查 jobId 是否为 1
-    // 3. 检查 workerId 是否为 2
-    //
-    // 任一条件不满足时打印错误并返回 false。
-    if (!result || result->jobId != 1 || result->workerId != 2) {
+    if (!result) {
+        std::cerr << "FAIL: BinPack did not schedule the job\n";
+        return false;
+    }
+
+    if (result->workerId != 2) {
+        std::cerr << "FAIL: BinPack selected the wrong worker\n";
+        return false;
+    }
+
+    return true;
+}
+
+bool testFirstFitChoosesFirstSuitableWorker() {
+    Scheduler scheduler{SchedulingPolicy::FirstFit};
+
+    scheduler.addWorker(Worker{1, {4, 8192}});
+    scheduler.addWorker(Worker{2, {8, 16384}});
+
+    const Job job{1, {2, 4096}};
+
+    scheduler.submitJob(job);
+    const auto result = scheduler.scheduleNext();
+
+    if (!result) {
+        std::cerr << "FAIL: FirstFit did not schedule the job\n";
+        return false;
+    }
+
+    if (result->workerId != 1) {
+        std::cerr << "FAIL: FirstFit selected the wrong worker\n";
+        return false;
+    }
+
+    return true;
+}
+
+bool testLeastAllocatedChoosesLowerUtilizationWorker() {
+    Scheduler scheduler{SchedulingPolicy::LeastAllocated};
+
+    scheduler.addWorker(Worker{1, {4, 8192}});
+    scheduler.addWorker(Worker{2, {8, 16384}});
+
+    const Job job{1, {2, 4096}};
+
+    scheduler.submitJob(job);
+    const auto result = scheduler.scheduleNext();
+
+    if (!result) {
+        std::cerr << "FAIL: LeastAllocated did not schedule the job\n";
+        return false;
+    }
+
+    if (result->workerId != 2) {
+        std::cerr << "FAIL: LeastAllocated selected the wrong worker\n";
         return false;
     }
 
@@ -29,6 +78,14 @@ bool testBinPackChoosesTighterWorker() {
 
 int main() {
     if (!testBinPackChoosesTighterWorker()) {
+        return 1;
+    }
+
+    if (!testFirstFitChoosesFirstSuitableWorker()) {
+        return 1;
+    }
+
+    if (!testLeastAllocatedChoosesLowerUtilizationWorker()) {
         return 1;
     }
 
