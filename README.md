@@ -1,7 +1,6 @@
 # HeteroSched
 
-HeteroSched 是一个使用 C++ 逐步构建轻量级资源调度器的学习项目。当前版本专注于
-理解单进程环境中的调度决策和资源管理，为后续引入并发执行与网络通信打下基础。
+HeteroSched 是一个使用 C++ 逐步构建轻量级资源调度器的学习项目。当前版本专注于理解单进程环境中的调度决策和资源管理，为后续引入并发执行与网络通信打下基础。
 
 ## 当前架构
 
@@ -15,8 +14,7 @@ HeteroSched 是一个使用 C++ 逐步构建轻量级资源调度器的学习项
          Worker Worker Worker
 ```
 
-Scheduler 管理 FIFO 等待队列、多个 Worker，以及当前正在运行的 Job 记录。每个
-Worker 负责记录自己的 CPU 和内存总量与可用量。
+Scheduler 管理 FIFO 等待队列、多个 Worker，以及当前正在运行的 Job 记录。每个Worker 负责记录自己的 CPU 和内存总量与可用量。
 
 ## 已实现功能
 
@@ -31,26 +29,21 @@ Worker 负责记录自己的 CPU 和内存总量与可用量。
 - FirstFit、BinPack 和 LeastAllocated 三种调度策略
 - 使用 CTest 运行自动化调度器测试
 
-如果队首 Job 无法在任何 Worker 上运行，它会继续留在队列中。这维持了严格的
-FIFO 顺序，但也可能造成队头阻塞（head-of-line blocking）。
+如果队首 Job 无法在任何 Worker 上运行，它会继续留在队列中。这维持了严格的FIFO 顺序，但也可能造成队头阻塞（head-of-line blocking）。
 
 ## 调度策略
 
 ### FirstFit
 
-按照 Worker 的添加顺序，选择第一个拥有足够可用 CPU 和内存的 Worker。该策略
-简单且快速，但结果依赖 Worker 的顺序，也不会主动平衡负载或紧凑放置任务。
+按照 Worker 的添加顺序，选择第一个拥有足够可用 CPU 和内存的 Worker。该策略简单且快速，但结果依赖 Worker 的顺序，也不会主动平衡负载或紧凑放置任务。
 
 ### BinPack
 
-在所有满足资源要求的 Worker 中，选择放入 Job 后剩余 CPU 核数最少的 Worker；
-如果剩余 CPU 相同，则比较剩余内存。该策略倾向于把任务紧凑地放到较小或使用率
-较高的 Worker 上，从而为未来的任务保留较大的连续空闲资源。
+在所有满足资源要求的 Worker 中，选择放入 Job 后剩余 CPU 核数最少的 Worker；如果剩余 CPU 相同，则比较剩余内存。该策略倾向于把任务紧凑地放到较小或使用率较高的 Worker 上，从而为未来的任务保留较大的连续空闲资源。
 
 ### LeastAllocated
 
-选择放入 Job 后 CPU 与内存综合利用率最低的 Worker。该策略会把任务分散到负载
-较低的 Worker 上，但可能导致空闲资源分散在不同节点中，产生资源碎片。
+选择放入 Job 后 CPU 与内存综合利用率最低的 Worker。该策略会把任务分散到负载较低的 Worker 上，但可能导致空闲资源分散在不同节点中，产生资源碎片。
 
 ## 构建与运行
 

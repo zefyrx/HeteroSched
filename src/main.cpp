@@ -1,4 +1,6 @@
 #include <iostream>
+#include <chrono>
+#include <thread>
 
 #include "job.h"
 #include "scheduler.h"
@@ -8,71 +10,51 @@ int main() {
     Scheduler scheduler{SchedulingPolicy::FirstFit};
     scheduler.addWorker(Worker{1, {4, 8192}});
 
-    const Job job1{1, {3, 4096}};
-    const Job job2{2, {2, 4096}};
+    const Job job{1, {2, 4096}};
 
-    scheduler.submitJob(job1);
-    scheduler.submitJob(job2);
-
-    const auto job1Result = scheduler.scheduleNext();
-    if (!job1Result || job1Result->jobId != 1 ||
-        job1Result->workerId != 1) {
-        std::cerr << "FAIL: Job 1 was not assigned to Worker 1\n";
+    if (!scheduler.submitJob(job)) {
+        std::cerr << "Failed to submit Job " << job.jobId << '\n';
         return 1;
     }
 
-    if (scheduler.runningJobCount() != 1 ||
-        scheduler.waitingJobCount() != 1) {
-        std::cerr << "FAIL: incorrect counts after scheduling Job 1\n";
+    const auto result = scheduler.scheduleNext();
+    if (!result) {
+        std::cerr << "No Worker can run Job " << job.jobId << '\n';
         return 1;
     }
 
-    const auto job2BeforeCompletion = scheduler.scheduleNext();
-    if (job2BeforeCompletion) {
-        std::cerr << "FAIL: Job 2 ran before Job 1 released resources\n";
+    const int jobId = result->jobId;
+    std::cout << "Scheduled Job " << jobId
+              << " to Worker " << result->workerId << '\n';
+
+    // 创建一个名为 workerThread 的 std::thread，并按值捕获 jobId。
+    // 在线程的 lambda 中完成以下操作：
+    //   1. 输出 Worker 开始执行哪个 Job；
+    //   2. 使用 std::this_thread::sleep_for 模拟执行 500 毫秒；
+    //   3. 输出 Worker 已经完成哪个 Job。
+    //
+    // 注意：本次实验不要在线程中访问 scheduler。
+    std::thread workerThread(
+        [jobId] {
+            std::cout << "Worker started Job " << jobId << '\n';
+
+            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
+            std::cout << "Worker finished Job " << jobId << '\n';
+        }
+    );
+
+    // 调用 workerThread.join()，等待模拟执行线程结束。
+    // completeJob() 必须在 join() 返回之后调用。
+    workerThread.join();
+
+    if (!scheduler.completeJob(jobId)) {
+        std::cerr << "Failed to complete Job " << jobId << '\n';
         return 1;
     }
 
-    if (scheduler.completeJob(999)) {
-        std::cerr << "FAIL: completing an unknown Job should fail\n";
-        return 1;
-    }
-
-    if (!scheduler.completeJob(1)) {
-        std::cerr << "FAIL: Job 1 could not be completed\n";
-        return 1;
-    }
-
-    if (scheduler.completeJob(1)) {
-        std::cerr << "FAIL: Job 1 was completed twice\n";
-        return 1;
-    }
-
-    if (scheduler.runningJobCount() != 0 ||
-        scheduler.waitingJobCount() != 1) {
-        std::cerr << "FAIL: incorrect counts after completing Job 1\n";
-        return 1;
-    }
-
-    const auto job2AfterCompletion = scheduler.scheduleNext();
-    if (!job2AfterCompletion || job2AfterCompletion->jobId != 2 ||
-        job2AfterCompletion->workerId != 1) {
-        std::cerr << "FAIL: Job 2 did not run after resources were released\n";
-        return 1;
-    }
-
-    if (scheduler.runningJobCount() != 1 ||
-        scheduler.waitingJobCount() != 0) {
-        std::cerr << "FAIL: incorrect final running/waiting counts\n";
-        return 1;
-    }
-
-    if (!scheduler.completeJob(2) || scheduler.runningJobCount() != 0) {
-        std::cerr << "FAIL: Job 2 did not complete cleanly\n";
-        return 1;
-    }
-
-    std::cout << "PASS: job lifecycle and resource release work correctly\n";
+    std::cout << "Completed Job " << jobId
+              << " and released its resources\n";
 
     return 0;
 }
