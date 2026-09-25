@@ -6,55 +6,68 @@
 #include "scheduler.h"
 #include "worker.h"
 
+void executeJob(int workerId, int jobId, int durationMs) {
+    std::cout << "Worker " << workerId
+              << " started Job " << jobId << '\n';
+
+    std::this_thread::sleep_for(
+        std::chrono::milliseconds(durationMs));
+
+    std::cout << "Worker " << workerId
+              << " finished Job " << jobId << '\n';
+}
+
 int main() {
     Scheduler scheduler{SchedulingPolicy::FirstFit};
-    scheduler.addWorker(Worker{1, {4, 8192}});
+    scheduler.addWorker(Worker{1, {2, 4096}});
+    scheduler.addWorker(Worker{2, {2, 4096}});
 
-    const Job job{1, {2, 4096}};
+    const Job job1{1, {2, 4096}};
+    const Job job2{2, {2, 4096}};
 
-    if (!scheduler.submitJob(job)) {
-        std::cerr << "Failed to submit Job " << job.jobId << '\n';
+    if (!scheduler.submitJob(job1)) {
+        std::cerr << "Failed to submit Job " << job1.jobId << '\n';
         return 1;
     }
 
-    const auto result = scheduler.scheduleNext();
-    if (!result) {
-        std::cerr << "No Worker can run Job " << job.jobId << '\n';
+    if (!scheduler.submitJob(job2)) {
+        std::cerr << "Failed to submit Job " << job2.jobId << '\n';
         return 1;
     }
 
-    const int jobId = result->jobId;
-    std::cout << "Scheduled Job " << jobId
-              << " to Worker " << result->workerId << '\n';
+    const auto result1 = scheduler.scheduleNext();
+    
+    if (!result1) {
+        std::cerr << "Failed to schedule Job " << job1.jobId << '\n';
+        return 1;
+    }
 
-    // 创建一个名为 workerThread 的 std::thread，并按值捕获 jobId。
-    // 在线程的 lambda 中完成以下操作：
-    //   1. 输出 Worker 开始执行哪个 Job；
-    //   2. 使用 std::this_thread::sleep_for 模拟执行 500 毫秒；
-    //   3. 输出 Worker 已经完成哪个 Job。
-    //
-    // 注意：本次实验不要在线程中访问 scheduler。
-    std::thread workerThread(
-        [jobId] {
-            std::cout << "Worker started Job " << jobId << '\n';
+    const auto result2 = scheduler.scheduleNext();
 
-            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    if (!result2) {
+        std::cerr << "Failed to schedule Job " << job2.jobId << '\n';
+        return 1;
+    }
 
-            std::cout << "Worker finished Job " << jobId << '\n';
-        }
-    );
+    std::thread workerThread1(executeJob, result1->workerId, result1->jobId, 700);
+    std::thread workerThread2(executeJob, result2->workerId, result2->jobId, 300);
 
     // 调用 workerThread.join()，等待模拟执行线程结束。
     // completeJob() 必须在 join() 返回之后调用。
-    workerThread.join();
+    workerThread1.join();
+    workerThread2.join();
 
-    if (!scheduler.completeJob(jobId)) {
-        std::cerr << "Failed to complete Job " << jobId << '\n';
+    if (!scheduler.completeJob(result1->jobId)) {
+        std::cerr << "Failed to complete Job " << result1->jobId << '\n';
         return 1;
     }
 
-    std::cout << "Completed Job " << jobId
-              << " and released its resources\n";
+    if (!scheduler.completeJob(result2->jobId)) {
+        std::cerr << "Failed to complete Job " << result2->jobId << '\n';
+        return 1;
+    }
+
+    std::cout << "Completed Job " << result1->jobId << " and " << result2->jobId << " and released its resources\n";
 
     return 0;
 }
