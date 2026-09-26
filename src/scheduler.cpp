@@ -5,6 +5,8 @@ Scheduler::Scheduler(SchedulingPolicy policy)
 }
 
 void Scheduler::addWorker(const Worker& worker) {
+    std::lock_guard<std::mutex> lock(mutex_);
+
     workers_.push_back(worker);
 }
 
@@ -25,10 +27,14 @@ std::optional<std::size_t> Scheduler::schedule(const Job& job) {
 }
 
 std::size_t Scheduler::workerCount() const {
+    std::lock_guard<std::mutex> lock(mutex_);
+
     return workers_.size();
 }
 
 bool Scheduler::submitJob(const Job& job) {
+    std::lock_guard<std::mutex> lock(mutex_);
+
     if (!submittedJobIds_.insert(job.jobId).second) {
         return false;
     }
@@ -39,10 +45,14 @@ bool Scheduler::submitJob(const Job& job) {
 }
 
 std::size_t Scheduler::waitingJobCount() const {
+    std::lock_guard<std::mutex> lock(mutex_);
+
     return waitingJobs_.size();
 }
 
 std::optional<ScheduleResult> Scheduler::scheduleNext() {
+    std::lock_guard<std::mutex> lock(mutex_);
+
     if (waitingJobs_.empty()) {
         return std::nullopt;
     }
@@ -166,6 +176,8 @@ std::optional<std::size_t> Scheduler::selectWorker(const Job& job) const {
 
 // Scheduler 收到通知，某个正在运行的任务已经执行完毕，负责处理任务执行结束后的状态和资源回收
 bool Scheduler::completeJob(int jobId) {
+    std::lock_guard<std::mutex> lock(mutex_);
+
     const auto it = runningJobs_.find(jobId);
 
     // 没有这个运行任务时返回 false
@@ -188,5 +200,7 @@ bool Scheduler::completeJob(int jobId) {
 }
 
 std::size_t Scheduler::runningJobCount() const {
+    std::lock_guard<std::mutex> lock(mutex_);
+
     return runningJobs_.size();
 }

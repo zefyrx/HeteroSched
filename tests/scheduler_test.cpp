@@ -1,4 +1,5 @@
 #include <iostream>
+#include <thread>
 
 #include "job.h"
 #include "scheduler.h"
@@ -186,6 +187,60 @@ bool testRejectsDuplicateJobId() {
     return true;
 }
 
+bool testConcurrentJobCompletion() {
+    Scheduler scheduler{SchedulingPolicy::FirstFit};
+
+    scheduler.addWorker(Worker{1, {2, 4096}});
+    scheduler.addWorker(Worker{2, {2, 4096}});
+
+    const Job job1{1, {2, 4096}};
+    const Job job2{2, {2, 4096}};
+
+    if (!scheduler.submitJob(job1) || !scheduler.submitJob(job2)) {
+        std::cerr << "FAIL: could not submit jobs for concurrent completion\n";
+        return false;
+    }
+
+    const auto result1 = scheduler.scheduleNext();
+    const auto result2 = scheduler.scheduleNext();
+
+    if (!result1 || !result2) {
+        std::cerr << "FAIL: could not schedule jobs for concurrent completion\n";
+        return false;
+    }
+
+    if (scheduler.runningJobCount() != 2) {
+        std::cerr << "FAIL: expected two running jobs before completion\n";
+        return false;
+    }
+
+    bool completion1 = false;
+    bool completion2 = false;
+
+    std::thread completionThread1([&scheduler, &completion1, result1]() {
+        completion1 = scheduler.completeJob(result1->jobId);
+    });
+
+    std::thread completionThread2([&scheduler, &completion2, result2]() {
+        completion2 = scheduler.completeJob(result2->jobId);
+    });
+
+    completionThread1.join();
+    completionThread2.join();
+
+    if (!completion1 || !completion2) {
+        std::cerr << "FAIL: concurrent job completion failed\n";
+        return false;
+    }
+
+    if (scheduler.runningJobCount() != 0) {
+        std::cerr << "FAIL: completed jobs remain in the running set\n";
+        return false;
+    }
+
+    return true;
+}
+
 int main() {
     if (!testBinPackChoosesTighterWorker()) {
         return 1;
@@ -204,6 +259,10 @@ int main() {
     }
 
     if (!testRejectsDuplicateJobId()) {
+        return 1;
+    }
+
+    if (!testConcurrentJobCompletion()) {
         return 1;
     }
 

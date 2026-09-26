@@ -7,6 +7,7 @@
 #include <queue>
 #include <unordered_map>
 #include <unordered_set>
+#include <mutex>
 
 #include "job.h"
 #include "worker.h"
@@ -54,6 +55,8 @@ private:
         Job job;
         std::size_t workerIndex;
     };
+
+    mutable std::mutex mutex_;
 
     std::unordered_map<int, RunningJob> runningJobs_;       // <jobId, RunningJob>
     std::unordered_set<int> submittedJobIds_;

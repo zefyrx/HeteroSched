@@ -33,6 +33,6 @@ add_executable(scheduler_tests
     tests/scheduler_test.cpp
 )
 
-target_link_libraries(scheduler_tests PRIVATE heterosched_core)
+target_link_libraries(scheduler_tests PRIVATE heterosched_core Threads::Threads)
 
 add_test(NAME scheduler_tests COMMAND scheduler_tests)

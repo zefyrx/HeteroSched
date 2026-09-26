@@ -1,17 +1,23 @@
 #include <iostream>
 #include <chrono>
 #include <thread>
+#include <functional>
 
 #include "job.h"
 #include "scheduler.h"
 #include "worker.h"
 
-void executeJob(int workerId, int jobId, int durationMs) {
+void executeJob(int workerId, int jobId, int durationMs, Scheduler& scheduler) {
     std::cout << "Worker " << workerId
               << " started Job " << jobId << '\n';
 
     std::this_thread::sleep_for(
         std::chrono::milliseconds(durationMs));
+
+    if (!scheduler.completeJob(jobId)) {
+        std::cerr << "Failed to complete Job " << jobId << '\n';
+        return;
+    }
 
     std::cout << "Worker " << workerId
               << " finished Job " << jobId << '\n';
@@ -49,21 +55,14 @@ int main() {
         return 1;
     }
 
-    std::thread workerThread1(executeJob, result1->workerId, result1->jobId, 700);
-    std::thread workerThread2(executeJob, result2->workerId, result2->jobId, 300);
+    std::thread workerThread1(executeJob, result1->workerId, result1->jobId, 700, std::ref(scheduler));
+    std::thread workerThread2(executeJob, result2->workerId, result2->jobId, 300, std::ref(scheduler));
 
-    // 调用 workerThread.join()，等待模拟执行线程结束。
-    // completeJob() 必须在 join() 返回之后调用。
     workerThread1.join();
     workerThread2.join();
 
-    if (!scheduler.completeJob(result1->jobId)) {
-        std::cerr << "Failed to complete Job " << result1->jobId << '\n';
-        return 1;
-    }
-
-    if (!scheduler.completeJob(result2->jobId)) {
-        std::cerr << "Failed to complete Job " << result2->jobId << '\n';
+    if (scheduler.runningJobCount() != 0) {
+        std::cerr << "Some jobs were not completed\n";
         return 1;
     }
 
