@@ -36,3 +36,13 @@ add_executable(scheduler_tests
 target_link_libraries(scheduler_tests PRIVATE heterosched_core Threads::Threads)
 
 add_test(NAME scheduler_tests COMMAND scheduler_tests)
+
+add_executable(scheduler_benchmark
+    benchmarks/scheduler_benchmark.cpp
+)
+
+target_link_libraries(
+    scheduler_benchmark
+    PRIVATE
+        heterosched_core
+)
