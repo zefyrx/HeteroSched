@@ -204,3 +204,20 @@ std::size_t Scheduler::runningJobCount() const {
 
     return runningJobs_.size();
 }
+
+std::vector<WorkerSnapshot> Scheduler::getWorkerSnapshots() const {
+    std::lock_guard<std::mutex> lock(mutex_);
+
+    std::vector<WorkerSnapshot> snapshots;
+    snapshots.reserve(workers_.size());
+
+    for (const Worker& worker : workers_) {
+        snapshots.push_back({
+            worker.getId(),
+            worker.getTotalResource(),
+            worker.getAvailableResource()
+        });
+    }
+
+    return snapshots;
+}

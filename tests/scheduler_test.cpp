@@ -241,6 +241,52 @@ bool testConcurrentJobCompletion() {
     return true;
 }
 
+bool testWorkerSnapshotsReflectResourceChanges() {
+    Scheduler scheduler{SchedulingPolicy::FirstFit};
+    scheduler.addWorker(Worker{1, {4, 8192}});
+
+    const Job job{1, {2, 2048}};
+
+    if (!scheduler.submitJob(job) || !scheduler.scheduleNext()) {
+        std::cerr << "FAIL: could not schedule snapshot test job\n";
+        return false;
+    }
+
+    const auto allocatedSnapshots = scheduler.getWorkerSnapshots();
+
+    if (allocatedSnapshots.size() != 1) {
+        std::cerr << "FAIL: incorrect worker snapshot count\n";
+        return false;
+    }
+
+    const WorkerSnapshot& allocated = allocatedSnapshots[0];
+
+    if (allocated.workerId != 1 ||
+        allocated.totalResource.cpuCores != 4 ||
+        allocated.totalResource.memoryMB != 8192 ||
+        allocated.availableResource.cpuCores != 2 ||
+        allocated.availableResource.memoryMB != 6144) {
+        std::cerr << "FAIL: snapshot does not reflect allocation\n";
+        return false;
+    }
+
+    if (!scheduler.completeJob(job.jobId)) {
+        std::cerr << "FAIL: could not complete snapshot test job\n";
+        return false;
+    }
+
+    const auto releasedSnapshots = scheduler.getWorkerSnapshots();
+    const WorkerSnapshot& released = releasedSnapshots[0];
+
+    if (released.availableResource.cpuCores != 4 ||
+        released.availableResource.memoryMB != 8192) {
+        std::cerr << "FAIL: snapshot does not reflect resource release\n";
+        return false;
+    }
+
+    return true;
+}
+
 int main() {
     if (!testBinPackChoosesTighterWorker()) {
         return 1;
@@ -263,6 +309,10 @@ int main() {
     }
 
     if (!testConcurrentJobCompletion()) {
+        return 1;
+    }
+
+    if (!testWorkerSnapshotsReflectResourceChanges()) {
         return 1;
     }
 

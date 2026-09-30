@@ -10,6 +10,8 @@
 struct BenchmarkResult {
     std::size_t scheduleJobs;
     std::size_t waitingJobs;
+    double cpuUtilization;
+    double memoryUtilization;
     long long elapsedMicroseconds;
 };
 
@@ -76,9 +78,29 @@ BenchmarkResult runBenchmark(SchedulingPolicy policy, const std::vector<Job>& jo
     // 剩下的 Job 全部还在 waiting queue 中
     const std::size_t waitingJobs = scheduler.waitingJobCount();
 
+    const auto snapshots = scheduler.getWorkerSnapshots();
+
+    long long totalCpu = 0;
+    long long availableCpu = 0;
+    long long totalMemory = 0;
+    long long availableMemory = 0;
+
+    for (const auto& worker : snapshots) {
+        totalCpu += worker.totalResource.cpuCores;
+        availableCpu += worker.availableResource.cpuCores;
+
+        totalMemory += worker.totalResource.memoryMB;
+        availableMemory += worker.availableResource.memoryMB;
+    }
+
+    const double cpuUtilization = totalCpu == 0 ? 0.0 : 100.0 * (totalCpu - availableCpu) / totalCpu;
+    const double memoryUtilization = totalMemory == 0 ? 0.0 : 100.0 * (totalMemory - availableMemory) / totalMemory;
+
     return {
         scheduledJobs,
         waitingJobs,
+        cpuUtilization,
+        memoryUtilization,
         elapsedMicroseconds
     };
 }
@@ -117,10 +139,12 @@ int main() {
         << std::setw(18) << "Policy"
         << std::setw(15) << "Scheduled"
         << std::setw(15) << "Waiting"
+        << std::setw(15) << "CPU Util (%)"
+        << std::setw(18) << "Memory Util (%)"
         << std::setw(15) << "Time (us)"
         << '\n';
 
-    std::cout << std::string(63, '-') << '\n';
+    std::cout << std::string(90, '-') << '\n';
 
     for (SchedulingPolicy policy : policies) {
 
@@ -131,6 +155,8 @@ int main() {
             << std::setw(18) << policyToString(policy)
             << std::setw(15) << result.scheduleJobs
             << std::setw(15) << result.waitingJobs
+            << std::setw(15) << std::fixed << std::setprecision(2) << result.cpuUtilization
+            << std::setw(18) << std::fixed << std::setprecision(2) << result.memoryUtilization
             << std::setw(15) << result.elapsedMicroseconds
             << '\n';
     }

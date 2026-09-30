@@ -23,6 +23,12 @@ struct ScheduleResult {
     int workerId;
 };
 
+struct WorkerSnapshot {
+    int workerId;
+    Resource totalResource;
+    Resource availableResource;
+};
+
 class Scheduler {
 public:
     // 创建 Scheduler，并设置其使用的调度策略
@@ -49,6 +55,9 @@ public:
 
     // 返回当前已经分配但尚未完成的 Job 数量
     std::size_t runningJobCount() const;
+
+    // 返回同一时刻所有 Worker 的资源状态副本
+    std::vector<WorkerSnapshot> getWorkerSnapshots() const;
 
 private:
     struct RunningJob {
