@@ -3,17 +3,49 @@
 #include <random>
 #include <iomanip>
 #include <chrono>
+#include <optional>
 
 #include "job.h"
 #include "scheduler.h"
 
+enum class StopReason {
+    AllScheduled,               // 所有 job 都成功调度
+    InsufficientCapacity,       // 集群总可用 CPU 和总可用内存不满足 Job
+    ResourceFragmentation,      // 集群总可用 CPU 和总可用内存满足 Job
+    UnexpectedFailure           // 有能调度的 worker 却未调度，发生了 UnexpectedFailure
+};
+
 struct BenchmarkResult {
-    std::size_t scheduleJobs;
+    std::size_t scheduledJobs;
     std::size_t waitingJobs;
     double cpuUtilization;
     double memoryUtilization;
     long long elapsedMicroseconds;
+    StopReason stopReason;
 };
+
+StopReason classifyStopReason(const std::vector<WorkerSnapshot>& snapshots, const Job* blockedJob) {
+    if (blockedJob == nullptr) {
+        return StopReason::AllScheduled;
+    }
+
+    long long availableCpu = 0;
+    long long availableMemory = 0;
+
+    for (const auto& worker : snapshots) {
+        if (worker.availableResource.cpuCores >= blockedJob->requiredResource.cpuCores && worker.availableResource.memoryMB >= blockedJob->requiredResource.memoryMB) {
+            return StopReason::UnexpectedFailure;
+        }
+        availableCpu += worker.availableResource.cpuCores;
+        availableMemory += worker.availableResource.memoryMB;
+    }
+
+    if (availableCpu >= blockedJob->requiredResource.cpuCores && availableMemory >= blockedJob->requiredResource.memoryMB) {
+        return StopReason::ResourceFragmentation;
+    }
+    
+    return StopReason::InsufficientCapacity;
+}
 
 std::vector<Job> generateJobs(std::size_t count, unsigned int seed) {
     std::vector<Job> jobs;
@@ -41,7 +73,7 @@ std::vector<Job> generateJobs(std::size_t count, unsigned int seed) {
     return jobs;
 }
 
-BenchmarkResult runBenchmark(SchedulingPolicy policy, const std::vector<Job>& jobs) {
+std::optional<BenchmarkResult> runBenchmark(SchedulingPolicy policy, const std::vector<Job>& jobs) {
 
     // 每种策略都重新创建一个 Scheduler
     Scheduler scheduler(policy);
@@ -57,6 +89,7 @@ BenchmarkResult runBenchmark(SchedulingPolicy policy, const std::vector<Job>& jo
     for (const auto& job : jobs) {
         if (!scheduler.submitJob(job)) {
             std::cerr << "Failed to submit Job " << job.jobId << '\n';
+            return std::nullopt;
         }
     }
 
@@ -80,6 +113,9 @@ BenchmarkResult runBenchmark(SchedulingPolicy policy, const std::vector<Job>& jo
 
     const auto snapshots = scheduler.getWorkerSnapshots();
 
+    const Job* blockedJob = scheduledJobs < jobs.size() ? &jobs[scheduledJobs] : nullptr;
+    StopReason stopReason = classifyStopReason(snapshots, blockedJob);
+
     long long totalCpu = 0;
     long long availableCpu = 0;
     long long totalMemory = 0;
@@ -96,12 +132,13 @@ BenchmarkResult runBenchmark(SchedulingPolicy policy, const std::vector<Job>& jo
     const double cpuUtilization = totalCpu == 0 ? 0.0 : 100.0 * (totalCpu - availableCpu) / totalCpu;
     const double memoryUtilization = totalMemory == 0 ? 0.0 : 100.0 * (totalMemory - availableMemory) / totalMemory;
 
-    return {
+    return BenchmarkResult {
         scheduledJobs,
         waitingJobs,
         cpuUtilization,
         memoryUtilization,
-        elapsedMicroseconds
+        elapsedMicroseconds,
+        stopReason
     };
 }
 
@@ -115,6 +152,24 @@ std::string policyToString(SchedulingPolicy policy) {
 
         case SchedulingPolicy::LeastAllocated:
             return "LeastAllocated";
+    }
+
+    return "Unknown";
+}
+
+std::string stopReasonToString(StopReason reason) {
+    switch (reason) {
+        case StopReason::AllScheduled:
+            return "AllScheduled";
+
+        case StopReason::InsufficientCapacity:
+            return "InsufficientCapacity";
+
+        case StopReason::ResourceFragmentation:
+            return "ResourceFragmentation";
+
+        case StopReason::UnexpectedFailure:
+            return "UnexpectedFailure";
     }
 
     return "Unknown";
@@ -142,22 +197,28 @@ int main() {
         << std::setw(15) << "CPU Util (%)"
         << std::setw(18) << "Memory Util (%)"
         << std::setw(15) << "Time (us)"
+        << std::setw(15) << "StopReason"
         << '\n';
 
-    std::cout << std::string(90, '-') << '\n';
+    std::cout << std::string(117, '-') << '\n';
 
     for (SchedulingPolicy policy : policies) {
 
-        BenchmarkResult result = runBenchmark(policy, jobs);
+        const auto result = runBenchmark(policy, jobs);
+
+        if (!result) {
+            return 1;
+        }
 
         std::cout
             << std::left
             << std::setw(18) << policyToString(policy)
-            << std::setw(15) << result.scheduleJobs
-            << std::setw(15) << result.waitingJobs
-            << std::setw(15) << std::fixed << std::setprecision(2) << result.cpuUtilization
-            << std::setw(18) << std::fixed << std::setprecision(2) << result.memoryUtilization
-            << std::setw(15) << result.elapsedMicroseconds
+            << std::setw(15) << result->scheduledJobs
+            << std::setw(15) << result->waitingJobs
+            << std::setw(15) << std::fixed << std::setprecision(2) << result->cpuUtilization
+            << std::setw(18) << std::fixed << std::setprecision(2) << result->memoryUtilization
+            << std::setw(15) << result->elapsedMicroseconds
+            << std::setw(15) << stopReasonToString(result->stopReason)
             << '\n';
     }
 
