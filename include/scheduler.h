@@ -32,11 +32,10 @@ struct WorkerSnapshot {
 class Scheduler {
 public:
     // 创建 Scheduler，并设置其使用的调度策略
-    explicit Scheduler(
-        SchedulingPolicy policy = SchedulingPolicy::FirstFit);
+    explicit Scheduler(SchedulingPolicy policy = SchedulingPolicy::FirstFit);
 
-    // 将一个 Worker 注册到 Scheduler 管理的 Worker 列表中
-    void addWorker(const Worker& worker);
+    // 将一个 Worker 注册到 Scheduler 管理的 Worker 列表中，同时要判断 worker 是否合法
+    bool addWorker(const Worker& worker);
 
     // 将 Job 加入 FIFO 等待队列；Scheduler 生命周期内 jobId 不可重复
     bool submitJob(const Job& job);
@@ -69,6 +68,7 @@ private:
 
     std::unordered_map<int, RunningJob> runningJobs_;       // <jobId, RunningJob>
     std::unordered_set<int> submittedJobIds_;
+    std::unordered_set<int> workerIds_;
 
     std::vector<Worker> workers_;
     std::queue<Job> waitingJobs_;

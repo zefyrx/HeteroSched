@@ -1,13 +1,24 @@
 #include "scheduler.h"
+#include "resource.h"
 
 Scheduler::Scheduler(SchedulingPolicy policy)
     : policy_(policy) {
 }
 
-void Scheduler::addWorker(const Worker& worker) {
+bool Scheduler::addWorker(const Worker& worker) {
     std::lock_guard<std::mutex> lock(mutex_);
 
+    if (!(hasPositiveResources(worker.getTotalResource()) && worker.getId() >= 0)) {
+        return false;
+    }
+
+    if (!workerIds_.insert(worker.getId()).second) {
+        return false;
+    }
+
     workers_.push_back(worker);
+
+    return true;
 }
 
 std::optional<std::size_t> Scheduler::schedule(const Job& job) {
@@ -34,6 +45,10 @@ std::size_t Scheduler::workerCount() const {
 
 bool Scheduler::submitJob(const Job& job) {
     std::lock_guard<std::mutex> lock(mutex_);
+
+    if (!(hasPositiveResources(job.requiredResource) && job.jobId >= 0)) {
+        return false;
+    }
 
     if (!submittedJobIds_.insert(job.jobId).second) {
         return false;

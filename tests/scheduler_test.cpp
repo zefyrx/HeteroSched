@@ -1,5 +1,6 @@
 #include <iostream>
 #include <thread>
+#include <vector>
 
 #include "job.h"
 #include "scheduler.h"
@@ -287,6 +288,147 @@ bool testWorkerSnapshotsReflectResourceChanges() {
     return true;
 }
 
+bool testRejectsInvalidJobResources() {
+    Scheduler scheduler{SchedulingPolicy::FirstFit};
+    Worker worker{1, {4, 8192}};
+
+    if (!scheduler.addWorker(worker)) {
+        std::cerr << "FAIL: could not add worker for invalid job test\n";
+        return false;
+    }
+
+    const std::vector<Job> invalidResourceJobs = {
+        {10, {-1, 1024}},
+        {11, {0, 1024}},
+        {12, {1, -1}},
+        {13, {1, 0}}
+    };
+
+    for (const Job& job : invalidResourceJobs) {
+        if (scheduler.submitJob(job)) {
+            std::cerr << "FAIL: Scheduler accepted Job " << job.jobId
+                      << " with invalid resources\n";
+            return false;
+        }
+
+        if (worker.canRun(job)) {
+            std::cerr << "FAIL: Worker accepted Job " << job.jobId
+                      << " with invalid resources\n";
+            return false;
+        }
+    }
+
+    const Job invalidIdJob{-1, {1, 1024}};
+
+    if (scheduler.submitJob(invalidIdJob)) {
+        std::cerr << "FAIL: Scheduler accepted a negative Job ID\n";
+        return false;
+    }
+
+    if (scheduler.waitingJobCount() != 0) {
+        std::cerr << "FAIL: invalid jobs entered the waiting queue\n";
+        return false;
+    }
+
+    if (!scheduler.submitJob(Job{10, {1, 1024}})) {
+        std::cerr << "FAIL: invalid Job attempt reserved its Job ID\n";
+        return false;
+    }
+
+    return true;
+}
+
+bool testRejectsDuplicateWorkerId() {
+    Scheduler scheduler{SchedulingPolicy::FirstFit};
+
+    if (!scheduler.addWorker(Worker{1, {4, 8192}})) {
+        std::cerr << "FAIL: Scheduler rejected the first Worker ID\n";
+        return false;
+    }
+
+    if (scheduler.addWorker(Worker{1, {8, 16384}})) {
+        std::cerr << "FAIL: Scheduler accepted a duplicate Worker ID\n";
+        return false;
+    }
+
+    const auto snapshots = scheduler.getWorkerSnapshots();
+
+    if (scheduler.workerCount() != 1 || snapshots.size() != 1) {
+        std::cerr << "FAIL: duplicate Worker changed the worker count\n";
+        return false;
+    }
+
+    if (snapshots[0].totalResource.cpuCores != 4 ||
+        snapshots[0].totalResource.memoryMB != 8192) {
+        std::cerr << "FAIL: duplicate Worker replaced the original Worker\n";
+        return false;
+    }
+
+    return true;
+}
+
+bool testRejectsInvalidWorkerResources() {
+    Scheduler scheduler{SchedulingPolicy::FirstFit};
+
+    const std::vector<Worker> invalidWorkers = {
+        Worker{-1, {4, 8192}},
+        Worker{1, {0, 8192}},
+        Worker{2, {-1, 8192}},
+        Worker{3, {4, 0}},
+        Worker{4, {4, -1}}
+    };
+
+    for (const Worker& worker : invalidWorkers) {
+        if (scheduler.addWorker(worker)) {
+            std::cerr << "FAIL: Scheduler accepted invalid Worker "
+                      << worker.getId() << '\n';
+            return false;
+        }
+    }
+
+    if (scheduler.workerCount() != 0) {
+        std::cerr << "FAIL: invalid Workers changed the worker count\n";
+        return false;
+    }
+
+    if (!scheduler.addWorker(Worker{1, {1, 1024}})) {
+        std::cerr << "FAIL: invalid Worker attempt reserved its Worker ID\n";
+        return false;
+    }
+
+    if (!scheduler.addWorker(Worker{0, {1, 1024}})) {
+        std::cerr << "FAIL: Scheduler rejected valid Worker ID 0\n";
+        return false;
+    }
+
+    return true;
+}
+
+bool testWorkerAndJobIdsUseSeparateNamespaces() {
+    Scheduler scheduler{SchedulingPolicy::FirstFit};
+
+    if (!scheduler.addWorker(Worker{7, {2, 4096}})) {
+        std::cerr << "FAIL: could not add Worker 7\n";
+        return false;
+    }
+
+    const Job job{7, {1, 1024}};
+
+    if (!scheduler.submitJob(job)) {
+        std::cerr << "FAIL: Job ID collided with an equal Worker ID\n";
+        return false;
+    }
+
+    const auto result = scheduler.scheduleNext();
+
+    if (!result || result->jobId != 7 || result->workerId != 7) {
+        std::cerr << "FAIL: equal Worker and Job IDs were not scheduled correctly\n";
+        return false;
+    }
+
+    return true;
+}
+
 int main() {
     if (!testBinPackChoosesTighterWorker()) {
         return 1;
@@ -313,6 +455,22 @@ int main() {
     }
 
     if (!testWorkerSnapshotsReflectResourceChanges()) {
+        return 1;
+    }
+
+    if (!testRejectsInvalidJobResources()) {
+        return 1;
+    }
+
+    if (!testRejectsDuplicateWorkerId()) {
+        return 1;
+    }
+
+    if (!testRejectsInvalidWorkerResources()) {
+        return 1;
+    }
+
+    if (!testWorkerAndJobIdsUseSeparateNamespaces()) {
         return 1;
     }
 

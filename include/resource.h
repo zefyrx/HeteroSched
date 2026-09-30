@@ -6,4 +6,6 @@ struct Resource {
     int memoryMB;
 };
 
+bool hasPositiveResources(const Resource& resource);
+
 #endif

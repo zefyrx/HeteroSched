@@ -11,6 +11,10 @@ int Worker::getId() const {
 }
 
 bool Worker::canRun(const Job& job) const {
+    if (!hasPositiveResources(job.requiredResource)) {
+        return false;
+    }
+
     return availableResource_.cpuCores >= job.requiredResource.cpuCores && availableResource_.memoryMB >= job.requiredResource.memoryMB;
 }
 

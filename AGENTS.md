@@ -7,7 +7,7 @@
 **Primary Language:** C++  
 **Target Environment:** Linux / WSL2  
 **Build System:** CMake  
-**Current Progress:** **0 — start from scratch**
+**Current Progress:** **Phase 1 complete, including input-validation hardening**
 
 This project is intended to become the user's main undergraduate systems project and to support future applications for:
 
@@ -1105,20 +1105,42 @@ Never fabricate progress.
 The user is currently at:
 
 ```text
-Project progress: 0
+Project progress: Phase 1 complete
 ```
 
-Therefore the next task is **Day 1 only**.
+Implemented and verified:
 
-Do not jump to networking.
+- CPU and memory resource model
+- Job and Worker domain models
+- Worker resource allocation and release
+- FIFO waiting queue and running Job tracking
+- FirstFit, BinPack and LeastAllocated scheduling policies
+- mutex-protected Scheduler state and concurrent completion simulation
+- repeatable benchmark and CTest coverage
+- Job and Worker input validation
+- independent uniqueness checks for Job IDs and Worker IDs
+
+Therefore the next task is **Phase 2.1 only: basic blocking TCP communication and one Worker registration message**.
+
+Start with one Scheduler server process and one Worker client process. Use a simple text message such as:
+
+```text
+REGISTER_WORKER <workerId> <cpuCores> <memoryMB>\n
+```
+
+The Scheduler should parse and validate the message before registering the Worker.
 
 Do not jump to GPU scheduling.
 
 Do not jump to Kubernetes.
 
+Do not introduce heartbeat, epoll, multiple concurrent clients, Protocol Buffers, gRPC, or automatic Job execution during Phase 2.1.
+
 ---
 
-# 19. Day 1 Execution Plan
+# 19. Historical Day 1 Execution Plan — Completed
+
+This section is retained as a learning record. Do not restart Day 1 unless the user explicitly asks to review or repair its foundations.
 
 Guide the user through the following sequence.
 
@@ -1345,8 +1367,7 @@ Every design decision should support that goal.
 
 When this file is first read, begin with:
 
-> We are starting HeteroSched from zero.  
-> First verify the WSL/Linux C++ development environment.  
-> Do not create the full project yet.  
-> Guide the user through Day 1 step by step.
-
+> HeteroSched Phase 1 and its input-validation hardening are complete.
+> First verify that the existing build and tests still pass.
+> The next milestone is Phase 2.1: one blocking TCP Scheduler server, one Worker client, and one validated Worker registration message.
+> Do not add heartbeat, epoll, GPU scheduling, Kubernetes, or other later-stage features yet.
