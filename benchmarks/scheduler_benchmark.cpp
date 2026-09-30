@@ -20,7 +20,7 @@ struct BenchmarkResult {
     std::size_t waitingJobs;
     double cpuUtilization;
     double memoryUtilization;
-    long long elapsedMicroseconds;
+    long long elapsedNanoseconds;
     StopReason stopReason;
 };
 
@@ -43,7 +43,7 @@ StopReason classifyStopReason(const std::vector<WorkerSnapshot>& snapshots, cons
     if (availableCpu >= blockedJob->requiredResource.cpuCores && availableMemory >= blockedJob->requiredResource.memoryMB) {
         return StopReason::ResourceFragmentation;
     }
-    
+
     return StopReason::InsufficientCapacity;
 }
 
@@ -104,8 +104,8 @@ std::optional<BenchmarkResult> runBenchmark(SchedulingPolicy policy, const std::
 
     auto end = std::chrono::steady_clock::now();
 
-    // 转换为微秒
-    long long elapsedMicroseconds = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+    // 转换为纳秒
+    const long long elapsedNanoseconds = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
 
     // 因为 scheduleNext() 第一次失败后立即退出，
     // 剩下的 Job 全部还在 waiting queue 中
@@ -137,7 +137,7 @@ std::optional<BenchmarkResult> runBenchmark(SchedulingPolicy policy, const std::
         waitingJobs,
         cpuUtilization,
         memoryUtilization,
-        elapsedMicroseconds,
+        elapsedNanoseconds,
         stopReason
     };
 }
@@ -178,6 +178,7 @@ std::string stopReasonToString(StopReason reason) {
 int main() {
 
     constexpr std::size_t JOB_COUNT = 100;
+    constexpr std::size_t REPEAT_COUNT = 10000;
     constexpr unsigned int SEED = 42;
 
     // 所有策略共用完全相同的一组 Job
@@ -196,29 +197,50 @@ int main() {
         << std::setw(15) << "Waiting"
         << std::setw(15) << "CPU Util (%)"
         << std::setw(18) << "Memory Util (%)"
-        << std::setw(15) << "Time (us)"
-        << std::setw(15) << "StopReason"
+        << std::setw(20) << "Avg Schedule (ns)"
+        << std::setw(24) << "StopReason"
         << '\n';
 
-    std::cout << std::string(117, '-') << '\n';
+    std::cout << std::string(125, '-') << '\n';
 
     for (SchedulingPolicy policy : policies) {
+        std::optional<BenchmarkResult> baseline;
+        long long totalNanoseconds = 0;
 
-        const auto result = runBenchmark(policy, jobs);
+        for (std::size_t run = 0; run < REPEAT_COUNT; ++run) {
+            const auto result = runBenchmark(policy, jobs);
 
-        if (!result) {
-            return 1;
+            if (!result) {
+                return 1;
+            }
+
+            if (!baseline) {
+                baseline = result;
+            } else if (result->scheduledJobs != baseline->scheduledJobs ||
+                       result->waitingJobs != baseline->waitingJobs ||
+                       result->stopReason != baseline->stopReason) {
+                std::cerr << "Benchmark produced inconsistent results\n";
+                return 1;
+            }
+
+            totalNanoseconds += result->elapsedNanoseconds;
         }
+
+        const std::size_t attemptsPerRun = baseline->scheduledJobs + 1;
+        const double totalAttempts =
+            static_cast<double>(REPEAT_COUNT) * attemptsPerRun;
+        const double averageNanosecondsPerAttempt =
+            static_cast<double>(totalNanoseconds) / totalAttempts;
 
         std::cout
             << std::left
             << std::setw(18) << policyToString(policy)
-            << std::setw(15) << result->scheduledJobs
-            << std::setw(15) << result->waitingJobs
-            << std::setw(15) << std::fixed << std::setprecision(2) << result->cpuUtilization
-            << std::setw(18) << std::fixed << std::setprecision(2) << result->memoryUtilization
-            << std::setw(15) << result->elapsedMicroseconds
-            << std::setw(15) << stopReasonToString(result->stopReason)
+            << std::setw(15) << baseline->scheduledJobs
+            << std::setw(15) << baseline->waitingJobs
+            << std::setw(15) << std::fixed << std::setprecision(2) << baseline->cpuUtilization
+            << std::setw(18) << std::fixed << std::setprecision(2) << baseline->memoryUtilization
+            << std::setw(20) << std::fixed << std::setprecision(2) << averageNanosecondsPerAttempt
+            << std::setw(24) << stopReasonToString(baseline->stopReason)
             << '\n';
     }
 
