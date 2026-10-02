@@ -46,3 +46,13 @@ target_link_libraries(
     PRIVATE
         heterosched_core
 )
+
+add_executable(scheduler_server
+    src/scheduler_server.cpp
+)
+
+target_link_libraries(scheduler_server
+    PRIVATE
+        heterosched_core
+        Threads::Threads
+)
