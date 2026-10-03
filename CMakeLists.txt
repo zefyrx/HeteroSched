@@ -56,3 +56,7 @@ target_link_libraries(scheduler_server
         heterosched_core
         Threads::Threads
 )
+
+add_executable(worker_client
+    src/worker_client.cpp
+)
