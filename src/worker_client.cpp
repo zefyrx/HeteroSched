@@ -4,6 +4,45 @@
 
 #include <cstdio>
 #include <iostream>
+#include <cerrno>
+#include <string>
+
+bool sendAll(int fd, const std::string& message) {
+    std::size_t sentBytes = 0;
+
+    while (sentBytes < message.size()) {
+        const ssize_t count = send(
+            fd,
+            message.data() + sentBytes,
+            message.size() - sentBytes,
+            MSG_NOSIGNAL
+        );
+
+        // count == -1 且 errno == EINTR：continue，重试。
+        // 其他发送错误：perror("send failed")，返回 false。
+        if (count == -1) {
+            if (errno == EINTR) {
+                continue;
+            }
+
+            perror("send failed");
+            return false;
+        }
+
+        // count == 0：打印无法继续发送的错误，返回 false。
+        if (count == 0) {
+            std::cerr << "unable to continue send" << std::endl;
+            return false;
+        }
+
+        // count > 0：转换为 std::size_t，再累加到 sentBytes。
+        if (count > 0) {
+            sentBytes += static_cast<std::size_t>(count);
+        }
+    }
+
+    return true;
+}
 
 int main() {
     const int clientFd = socket(AF_INET, SOCK_STREAM, 0);
@@ -38,8 +77,16 @@ int main() {
         return 1;
     }
 
-    std::cout << "Connected to Scheduler at 127.0.0.1:9000"
-              << std::endl;
+    std::cout << "Connected to Scheduler at 127.0.0.1:9000" << std::endl;
+
+    const std::string message = "REGISTER_WORKER 1 8 16384\n";
+
+    if (!sendAll(clientFd, message)) {
+        close(clientFd);
+        return 1;
+    }
+
+    std::cout << "Registration message sent" << std::endl;
 
     close(clientFd);
     return 0;

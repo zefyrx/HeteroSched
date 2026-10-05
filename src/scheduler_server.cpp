@@ -4,6 +4,43 @@
 
 #include <cstdio>
 #include <iostream>
+#include <cerrno>
+#include <optional>
+#include <string>
+
+std::optional<std::string> receiveLine(int fd) {
+    char ch;
+    std::string line;
+
+    while (true) {
+        const ssize_t count = recv(fd, &ch, 1, 0);
+        
+        if (count == -1) {
+            if (errno == EINTR) {
+                continue;
+            }
+
+            perror("recv failed");
+            return std::nullopt;
+        }
+
+        if (count == 0) {
+            std::cerr << "Incomplete message" << std::endl;
+            return std::nullopt;
+        }
+
+        if (ch == '\n') {
+            return line;
+        }
+
+        if (line.size() == 128) {
+            std::cerr << "message too long" << std::endl;
+            return std::nullopt;
+        }
+
+        line += ch;
+    }
+}
 
 int main() {
     const int serverFd = socket(AF_INET, SOCK_STREAM, 0);
@@ -48,6 +85,16 @@ int main() {
     }
 
     std::cout << "Client connected" << std::endl;
+
+    const auto message = receiveLine(clientFd);
+
+    if (!message) {
+        close(clientFd);
+        close(serverFd);
+        return 1;
+    }
+
+    std::cout << "Received: " << *message << std::endl;
 
     close(clientFd);
     close(serverFd);
