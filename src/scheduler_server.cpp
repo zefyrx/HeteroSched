@@ -7,6 +7,10 @@
 #include <cerrno>
 #include <optional>
 #include <string>
+#include <sstream>
+
+#include "scheduler.h"
+#include "worker.h"
 
 std::optional<std::string> receiveLine(int fd) {
     char ch;
@@ -42,7 +46,44 @@ std::optional<std::string> receiveLine(int fd) {
     }
 }
 
+std::optional<Worker> parseRegistration(const std::string& line) {
+    std::istringstream input(line);
+
+    std::string command;
+    int workerId = 0;
+    int cpuCores = 0;
+    int memoryMB = 0;
+
+    // 提取 command 和三个整数。
+    // 提取失败则返回 std::nullopt。
+    if (! (input >> command >> workerId >> cpuCores >> memoryMB)) {
+        return std::nullopt;
+    }
+
+    // command 必须等于 "REGISTER_WORKER"。
+    if (command != "REGISTER_WORKER") {
+        return std::nullopt;
+    }
+
+    // 拒绝任何额外的非空白字段。
+    std::string extra;
+    if (input >> extra) {
+        return std::nullopt;
+    }
+
+    const Resource resource{cpuCores, memoryMB};
+
+    // workerId >= 0，且 hasPositiveResources(resource)。
+    if (!(workerId >= 0 && hasPositiveResources(resource))) {
+        return std::nullopt;
+    }
+
+    return Worker{workerId, resource};
+}
+
 int main() {
+    Scheduler scheduler;
+
     const int serverFd = socket(AF_INET, SOCK_STREAM, 0);
     if (serverFd == -1) {
         std::perror("socket failed");
@@ -95,6 +136,26 @@ int main() {
     }
 
     std::cout << "Received: " << *message << std::endl;
+
+    const auto worker = parseRegistration(*message);
+
+    if (!worker) {
+        std::cerr << "Invalid registration message" << std::endl;
+        close(clientFd);
+        close(serverFd);
+        return 1;
+    }
+
+    if (!scheduler.addWorker(*worker)) {
+        std::cerr << "Worker registration rejected" << std::endl;
+        close(clientFd);
+        close(serverFd);
+        return 1;
+    }
+
+    std::cout << "Registered Worker " << worker->getId()
+            << ", worker count: " << scheduler.workerCount()
+            << std::endl;
 
     close(clientFd);
     close(serverFd);
