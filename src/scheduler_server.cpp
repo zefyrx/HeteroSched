@@ -12,40 +12,7 @@
 #include "scheduler.h"
 #include "worker.h"
 #include "registration.h"
-
-std::optional<std::string> receiveLine(int fd) {
-    char ch;
-    std::string line;
-
-    while (true) {
-        const ssize_t count = recv(fd, &ch, 1, 0);
-        
-        if (count == -1) {
-            if (errno == EINTR) {
-                continue;
-            }
-
-            perror("recv failed");
-            return std::nullopt;
-        }
-
-        if (count == 0) {
-            std::cerr << "Incomplete message" << std::endl;
-            return std::nullopt;
-        }
-
-        if (ch == '\n') {
-            return line;
-        }
-
-        if (line.size() == 128) {
-            std::cerr << "message too long" << std::endl;
-            return std::nullopt;
-        }
-
-        line += ch;
-    }
-}
+#include "tcp_io.h"
 
 int main() {
     Scheduler scheduler;
@@ -107,6 +74,13 @@ int main() {
 
     if (!worker) {
         std::cerr << "Invalid registration message" << std::endl;
+
+        if (!sendAll(clientFd, "REGISTER_ERROR\n")) {
+            close(clientFd);
+            close(serverFd);
+            return 1;
+        }
+
         close(clientFd);
         close(serverFd);
         return 1;
@@ -114,6 +88,19 @@ int main() {
 
     if (!scheduler.addWorker(*worker)) {
         std::cerr << "Worker registration rejected" << std::endl;
+
+        if (!sendAll(clientFd, "REGISTER_ERROR\n")) {
+            close(clientFd);
+            close(serverFd);
+            return 1;
+        }
+
+        close(clientFd);
+        close(serverFd);
+        return 1;
+    }
+
+    if (!sendAll(clientFd, "REGISTER_OK\n")) {
         close(clientFd);
         close(serverFd);
         return 1;
