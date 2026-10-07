@@ -13,6 +13,7 @@ add_library(heterosched_core
     src/job.cpp
     src/worker.cpp
     src/scheduler.cpp
+    src/registration.cpp
 )
 
 target_include_directories(heterosched_core PUBLIC include)
@@ -60,3 +61,14 @@ target_link_libraries(scheduler_server
 add_executable(worker_client
     src/worker_client.cpp
 )
+
+add_executable(registration_tests
+    tests/registration_test.cpp
+)
+
+target_link_libraries(registration_tests
+    PRIVATE
+        heterosched_core
+)
+
+add_test(NAME registration_tests COMMAND registration_tests)
