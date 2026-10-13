@@ -119,14 +119,15 @@ Completed Job 1 and 2 and released its resources
 服务端监听 `127.0.0.1:9000`，输出监听日志后等待连接。再在终端二启动客户端：
 
 ```bash
-./build/worker_client
+./build/worker_client 1 8 16384
 ```
 
-客户端默认注册 Worker `1`，CPU 为 `8` 核、内存为 `16384 MB`。客户端输出：
+三个命令行参数依次为 Worker ID、CPU 核数和内存 MB。客户端只检查参数数量，直接将参数文本拼入注册消息；整数转换、资源约束和 ID 校验由服务端完成。上述命令注册 Worker `1`，CPU 为 `8` 核、内存为 `16384 MB`。客户端输出：
 
 ```text
 Connected to Scheduler at 127.0.0.1:9000
 Registration message sent
+Registration success
 ```
 
 服务端输出：
@@ -138,11 +139,11 @@ Received: REGISTER_WORKER 1 8 16384
 Registered Worker 1, worker count: 1
 ```
 
-两个程序在处理一次注册后退出，每次演示都需要重新启动服务端。客户端发送完成只表示消息已提交给本地 socket；注册是否成功应查看服务端日志，目前没有注册确认响应。
+两个程序在处理一次注册后退出，每次演示都需要重新启动服务端。`Registration message sent` 只表示消息已提交给本地 socket；服务端注册成功后回复 `REGISTER_OK`，客户端收到确认后打印 `Registration success`。解析或注册被拒绝时，服务端回复 `REGISTER_ERROR`，客户端打印 `Registration failed` 并以非零状态退出。
 
 ## 注册消息协议
 
-客户端默认发送空白分隔的文本消息：
+客户端将三个参数用空格拼接，发送以下文本消息：
 
 ```text
 REGISTER_WORKER <workerId> <cpuCores> <memoryMB>\n
@@ -170,7 +171,7 @@ REGISTER_WORKER 1 8+16384
 REGISTER_WORKER 1+8 16384
 ```
 
-这里的正号属于整数的符号，不执行加法运算。客户端默认使用空白分隔形式。
+这里的正号属于整数的符号，不执行加法运算。客户端使用空格分隔三个命令行参数。
 
 若连接在换行前结束，服务端报告 `Incomplete message`；正文超过长度限制时报告 `message too long`；内容无效时报告 `Invalid registration message`。服务端关闭 socket 并以非零状态退出。
 
@@ -249,8 +250,8 @@ LeastAllocated    9              91             78.57          64.05            
 
 - TCP 服务端只接受一个客户端，处理一条注册消息后退出
 - 注册状态仅保存在内存中，服务端退出后消失
-- 地址、端口、客户端 Worker ID 和资源信息固定在代码中
-- 尚未实现注册确认响应、网络 Job 分发和执行结果回报
+- 地址和端口固定在代码中，客户端 Worker ID 和资源信息通过命令行传入
+- 尚未实现网络 Job 分发和执行结果回报
 - Scheduler 使用一把粗粒度 mutex，尚未研究锁竞争
 - Job 只是模拟的资源请求，不执行真实工作负载
 - 没有长期运行的 Worker 线程或自动调度循环
@@ -261,7 +262,7 @@ LeastAllocated    9              91             78.57          64.05            
 
 ## 后续计划
 
-- 完善注册结果反馈和可配置的 Worker 信息
+- 完善注册失败原因反馈和可配置的连接地址
 - 扩展多个 Worker 的连接管理
 - 实现网络 Job 分发和任务执行结果回报
 - 添加 Worker 心跳与故障检测

@@ -9,7 +9,13 @@
 
 #include "tcp_io.h"
 
-int main() {
+int main(int argc, char* argv[]) {
+    // 只检查启动参数是否齐全，注册内容由服务端解析和校验。
+    if (argc != 4) {
+        std::cerr << "Usage: worker_client <workerId> <cpuCores> <memoryMB>" << std::endl;
+        return 1;
+    }
+
     const int clientFd = socket(AF_INET, SOCK_STREAM, 0);
     if (clientFd == -1) {
         std::perror("socket failed");
@@ -44,7 +50,9 @@ int main() {
 
     std::cout << "Connected to Scheduler at 127.0.0.1:9000" << std::endl;
 
-    const std::string request = "REGISTER_WORKER 1 8 16384\n";
+    const std::string request =
+        std::string{"REGISTER_WORKER "} + argv[1] + " " +
+        argv[2] + " " + argv[3] + "\n";
 
     if (!sendAll(clientFd, request)) {
         close(clientFd);
