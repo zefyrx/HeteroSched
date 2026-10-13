@@ -78,3 +78,12 @@ target_link_libraries(registration_tests
 )
 
 add_test(NAME registration_tests COMMAND registration_tests)
+
+add_executable(tcp_io_tests
+    tests/tcp_io_test.cpp
+)
+
+target_link_libraries(tcp_io_tests PRIVATE heterosched_core)
+
+add_test(NAME tcp_io_tests COMMAND tcp_io_tests)
+set_tests_properties(tcp_io_tests PROPERTIES TIMEOUT 10)
