@@ -68,13 +68,19 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    if (*message != "REGISTER_OK") {
-        std::cerr << "Registration failed" << std::endl;
+    const std::string errorPrefix = "REGISTER_ERROR ";
+
+    if (*message == "REGISTER_OK") {
+        std::cout << "Registration success" << std::endl;
+    } else if (message->rfind(errorPrefix, 0) == 0) {
+        std::cerr << "Registration failed: " << message->substr(errorPrefix.size()) << std::endl;
+        close(clientFd);
+        return 1;
+    } else {
+        std::cerr << "Unexpected registration response" << std::endl;
         close(clientFd);
         return 1;
     }
-    
-    std::cout << "Registration success" << std::endl;
 
     close(clientFd);
     return 0;

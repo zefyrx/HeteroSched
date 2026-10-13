@@ -75,7 +75,7 @@ int main() {
     if (!worker) {
         std::cerr << "Invalid registration message" << std::endl;
 
-        if (!sendAll(clientFd, "REGISTER_ERROR\n")) {
+        if (!sendAll(clientFd, "REGISTER_ERROR INVALID_MESSAGE\n")) {
             close(clientFd);
             close(serverFd);
             return 1;
@@ -89,7 +89,7 @@ int main() {
     if (!scheduler.addWorker(*worker)) {
         std::cerr << "Worker registration rejected" << std::endl;
 
-        if (!sendAll(clientFd, "REGISTER_ERROR\n")) {
+        if (!sendAll(clientFd, "REGISTER_ERROR WORKER_REJECTED\n")) {
             close(clientFd);
             close(serverFd);
             return 1;
