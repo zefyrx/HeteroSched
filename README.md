@@ -1,8 +1,8 @@
 # HeteroSched
 
-HeteroSched 是一个使用 C++17 逐步构建的轻量级资源调度器学习项目。已完成单进程资源调度，并实现基础 TCP Worker 注册：Worker 客户端发送资源信息，Scheduler 服务端接收、解析、校验并注册 Worker。
+HeteroSched 是一个使用 C++17 逐步构建的轻量级资源调度器学习项目。已完成单进程资源调度，并实现阻塞式 TCP Worker 注册：Worker 客户端发送资源信息，Scheduler 服务端持续监听，串行接收、解析、校验并注册多个 Worker，向客户端反馈注册结果。
 
-当前进度：Phase 1 单进程调度和 Phase 2.1 基础 TCP Worker 注册已完成。网络版目前只演示注册流程；网络 Job 分发、真实任务执行、心跳和 GPU 调度属于后续计划。
+当前进度：Phase 1 单进程调度和 Phase 2.1 基础 TCP Worker 注册已完成，注册演示已扩展为持续监听与串行处理多个客户端。网络版目前只演示注册流程；网络 Job 分发、真实任务执行、心跳和 GPU 调度属于后续计划。
 
 ## 当前架构
 
@@ -30,19 +30,28 @@ Scheduler 拥有 Worker 状态、FIFO 等待队列和运行中 Job 记录。Work
 ### TCP 注册演示
 
 ```text
-worker_client 进程
+worker_client 进程（每次启动完成一次注册）
     |
     | TCP: REGISTER_WORKER 1 8 16384\n
     v
 scheduler_server 进程
-    receiveLine()
+    accept() 循环
         |
-    parseRegistration()
+    handleRegistration(clientFd, scheduler)
+        receiveLine()
+            |
+        parseRegistration()
+            |
+        Scheduler::addWorker()
+            |
+        sendAll() 发送注册结果
         |
-    Scheduler::addWorker()
+    close(clientFd) -> 回到 accept()
 ```
 
-客户端发送 Worker ID 和资源信息。服务端接收完整的一行，解析并校验内容，然后将 Worker 的资源状态保存到 Scheduler。当前客户端尚未接收或执行 Job。
+客户端发送 Worker ID 和资源信息。服务端接收完整的一行，解析并校验内容，然后将 Worker 的资源状态保存到 Scheduler，并发送成功或失败响应。`main()` 拥有监听 socket 和 Scheduler，负责循环接受连接及关闭客户端 socket；`handleRegistration()` 处理单次请求，遇到请求错误时返回，服务端继续接受下一个连接。
+
+Scheduler 创建在 `accept()` 循环外，因此多次注册共享同一份 Worker 状态。网络服务端与单进程调度演示使用各自独立的 Scheduler 实例。当前客户端尚未接收或执行 Job。
 
 ## 已实现功能
 
@@ -66,6 +75,10 @@ scheduler_server 进程
 - 循环发送完整消息，处理部分发送和 `EINTR`
 - 按换行符接收完整消息，限制正文最多 128 字节
 - 独立的 Worker 注册消息解析与校验函数
+- 服务端持续监听并串行处理多个客户端注册
+- 同一服务端实例内保留注册状态并拒绝重复 Worker ID
+- 注册结果确认，以及 `INVALID_MESSAGE` / `WORKER_REJECTED` 错误码反馈
+- 单次请求失败后关闭该连接，继续接受后续请求
 
 如果 FIFO 队首 Job 无法在任何 Worker 上运行，它会继续留在队列中，后续 Job 不会越过它。这保持了严格 FIFO，但也可能造成队头阻塞（head-of-line blocking）。
 
@@ -139,7 +152,29 @@ Received: REGISTER_WORKER 1 8 16384
 Registered Worker 1, worker count: 1
 ```
 
-两个程序在处理一次注册后退出，每次演示都需要重新启动服务端。`Registration message sent` 只表示消息已提交给本地 socket；服务端注册成功后回复 `REGISTER_OK`，客户端收到确认后打印 `Registration success`。解析或注册被拒绝时，服务端回复 `REGISTER_ERROR`，客户端打印 `Registration failed` 并以非零状态退出。
+客户端完成一次注册尝试后退出；服务端关闭该客户端连接后，继续等待下一次连接。`Registration message sent` 只表示消息已提交给本地 socket；服务端注册成功后回复 `REGISTER_OK`，客户端收到确认后打印 `Registration success`。注册失败时，客户端展示服务端返回的错误码并以非零状态退出。
+
+### 验证连续注册与错误请求
+
+启动一次服务端后，在另一个终端依次执行以下命令，中间不重启服务端：
+
+```bash
+./build/worker_client 1 8 16384
+./build/worker_client -1 4 8192
+./build/worker_client 1 4 8192
+./build/worker_client 2 4 8192
+```
+
+以上序列从刚启动、尚未注册任何 Worker 的服务端开始；如果已经运行了前面的 Worker 1 演示，第一条请求会被视为重复注册。
+
+| 请求 | 客户端结果 | 服务端 Worker 数量 |
+|---|---|---|
+| 首次注册 ID 1 | `Registration success` | 1 |
+| 负 ID | `Registration failed: INVALID_MESSAGE` | 1 |
+| 再次注册 ID 1 | `Registration failed: WORKER_REJECTED` | 1 |
+| 注册 ID 2 | `Registration success` | 2 |
+
+服务端成功注册 Worker 2 时输出 `Registered Worker 2, worker count: 2`。非法输入和重复注册不会终止服务端，也不会增加 Worker 数量。实验结束后，在服务端终端按 `Ctrl+C` 停止程序；下次启动时注册状态重新为空。
 
 ## 注册消息协议
 
@@ -173,7 +208,17 @@ REGISTER_WORKER 1+8 16384
 
 这里的正号属于整数的符号，不执行加法运算。客户端使用空格分隔三个命令行参数。
 
-若连接在换行前结束，服务端报告 `Incomplete message`；正文超过长度限制时报告 `message too long`；内容无效时报告 `Invalid registration message`。服务端关闭 socket 并以非零状态退出。
+服务端响应同样以换行符结束：
+
+| 响应 | 含义 |
+|---|---|
+| `REGISTER_OK\n` | Worker 已成功加入 Scheduler |
+| `REGISTER_ERROR INVALID_MESSAGE\n` | 完整注册行的格式或参数不合法 |
+| `REGISTER_ERROR WORKER_REJECTED\n` | 注册消息解析成功，但 `Scheduler::addWorker()` 拒绝注册，例如 Worker ID 重复 |
+
+`INVALID_MESSAGE` 目前不进一步区分非整数、负 ID 或非正资源。客户端遇到 `REGISTER_OK` 以外、且没有 `REGISTER_ERROR ` 前缀的响应时，报告 `Unexpected registration response`。
+
+若连接在换行前结束，服务端报告 `Incomplete message`；正文超过长度限制时报告 `message too long`。这两类接收失败不发送注册结果，服务端关闭该客户端连接并继续等待后续连接。完整行内容无效时，服务端报告 `Invalid registration message` 并发送 `INVALID_MESSAGE` 响应；注册被拒绝时发送 `WORKER_REJECTED` 响应。收发失败也只结束当前请求；`accept()` 被 `EINTR` 打断时重试，其他 `accept()` 错误会关闭监听 socket 并结束服务端。
 
 ## 运行测试
 
@@ -248,8 +293,10 @@ LeastAllocated    9              91             78.57          64.05            
 
 ## 当前限制
 
-- TCP 服务端只接受一个客户端，处理一条注册消息后退出
+- TCP 服务端串行处理连接，同一时刻只处理一个客户端的一条注册消息
+- 尚无接收超时；客户端迟迟不发送完整行时，会阻塞后续客户端的处理
 - 注册状态仅保存在内存中，服务端退出后消失
+- 客户端退出不会注销 Worker，已登记的资源只是状态记录，尚未用于远程任务执行
 - 地址和端口固定在代码中，客户端 Worker ID 和资源信息通过命令行传入
 - 尚未实现网络 Job 分发和执行结果回报
 - Scheduler 使用一把粗粒度 mutex，尚未研究锁竞争
@@ -263,7 +310,7 @@ LeastAllocated    9              91             78.57          64.05            
 ## 后续计划
 
 - 完善注册失败原因反馈和可配置的连接地址
-- 扩展多个 Worker 的连接管理
+- 扩展多个 Worker 的并发连接管理与连接生命周期处理
 - 实现网络 Job 分发和任务执行结果回报
 - 添加 Worker 心跳与故障检测
 - 添加 Job 失败重试和重新调度

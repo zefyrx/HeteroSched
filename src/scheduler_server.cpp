@@ -14,6 +14,38 @@
 #include "registration.h"
 #include "tcp_io.h"
 
+void handleRegistration(int clientFd, Scheduler& scheduler) {
+    const auto message = receiveLine(clientFd);
+
+    if (!message) return;
+
+    std::cout << "Received: " << *message << std::endl;
+
+    const auto worker = parseRegistration(*message);
+
+    if (!worker) {
+        std::cerr << "Invalid registration message" << std::endl;
+
+        if (!sendAll(clientFd, "REGISTER_ERROR INVALID_MESSAGE\n")) return;
+
+        return;
+    }
+
+    if (!scheduler.addWorker(*worker)) {
+        std::cerr << "Worker registration rejected" << std::endl;
+
+        if (!sendAll(clientFd, "REGISTER_ERROR WORKER_REJECTED\n")) return;
+
+        return;
+    }
+
+    if (!sendAll(clientFd, "REGISTER_OK\n")) return;
+
+    std::cout << "Registered Worker " << worker->getId()
+        << ", worker count: " << scheduler.workerCount()
+        << std::endl;
+}
+
 int main() {
     Scheduler scheduler;
 
@@ -48,69 +80,25 @@ int main() {
     // 使用 std::endl，确保进入阻塞等待前日志已经输出。
     std::cout << "Listening on 127.0.0.1:9000" << std::endl;
 
-    // 调用 accept()，接收一个连接。
-    // 成功时输出 Client connected，并关闭返回的连接描述符。
-    // 失败时打印错误、关闭 serverFd 并返回 1。
-    const int clientFd = accept(serverFd, nullptr, nullptr);
-    if (clientFd < 0) {
-        std::perror("accept failed");
-        close(serverFd);
-        return 1;
-    }
+    while (true) {
+        const int clientFd = accept(serverFd, nullptr, nullptr);
 
-    std::cout << "Client connected" << std::endl;
+        if (clientFd < 0) {
+            if (errno == EINTR) {
+                continue;
+            }
 
-    const auto message = receiveLine(clientFd);
-
-    if (!message) {
-        close(clientFd);
-        close(serverFd);
-        return 1;
-    }
-
-    std::cout << "Received: " << *message << std::endl;
-
-    const auto worker = parseRegistration(*message);
-
-    if (!worker) {
-        std::cerr << "Invalid registration message" << std::endl;
-
-        if (!sendAll(clientFd, "REGISTER_ERROR INVALID_MESSAGE\n")) {
-            close(clientFd);
+            std::perror("accept failed");
             close(serverFd);
             return 1;
         }
 
+        std::cout << "Client connected" << std::endl;
+
+        handleRegistration(clientFd, scheduler);
         close(clientFd);
-        close(serverFd);
-        return 1;
     }
 
-    if (!scheduler.addWorker(*worker)) {
-        std::cerr << "Worker registration rejected" << std::endl;
-
-        if (!sendAll(clientFd, "REGISTER_ERROR WORKER_REJECTED\n")) {
-            close(clientFd);
-            close(serverFd);
-            return 1;
-        }
-
-        close(clientFd);
-        close(serverFd);
-        return 1;
-    }
-
-    if (!sendAll(clientFd, "REGISTER_OK\n")) {
-        close(clientFd);
-        close(serverFd);
-        return 1;
-    }
-
-    std::cout << "Registered Worker " << worker->getId()
-            << ", worker count: " << scheduler.workerCount()
-            << std::endl;
-
-    close(clientFd);
     close(serverFd);
     return 0;
 }
