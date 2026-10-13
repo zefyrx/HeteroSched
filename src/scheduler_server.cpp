@@ -1,6 +1,7 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <sys/time.h>
 
 #include <cstdio>
 #include <iostream>
@@ -15,6 +16,7 @@
 #include "tcp_io.h"
 
 void handleRegistration(int clientFd, Scheduler& scheduler) {
+    // 阻塞
     const auto message = receiveLine(clientFd);
 
     if (!message) return;
@@ -95,10 +97,21 @@ int main() {
 
         std::cout << "Client connected" << std::endl;
 
+        timeval timeout{};
+        timeout.tv_sec = 5;
+        timeout.tv_usec = 0;
+
+        if (setsockopt(clientFd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout)) == -1) {
+            // 打印 setsockopt failed。
+            std::cerr << "setsockopt failed" << std::endl;
+            // 关闭当前 clientFd。
+            close(clientFd);
+            // continue，等待下一个连接。
+            continue;
+        }
+
         handleRegistration(clientFd, scheduler);
         close(clientFd);
     }
 
-    close(serverFd);
-    return 0;
 }

@@ -54,6 +54,14 @@ std::optional<std::string> receiveLine(int fd) {
                 continue;
             }
 
+            // 当 recv() 因为暂时无法读取数据而返回错误时
+            // 判断是不是由于接收超时或非阻塞 Socket 暂时没有数据
+            // 而不是其他网络错误。
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                std::cerr << "Receive timed out" << std::endl;
+                return std::nullopt;
+            }
+            
             perror("recv failed");
             return std::nullopt;
         }
