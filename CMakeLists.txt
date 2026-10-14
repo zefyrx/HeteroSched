@@ -14,6 +14,7 @@ add_library(heterosched_core
     src/worker.cpp
     src/scheduler.cpp
     src/registration.cpp
+    src/job_submission.cpp
     src/tcp_io.cpp
 )
 
@@ -87,3 +88,11 @@ target_link_libraries(tcp_io_tests PRIVATE heterosched_core)
 
 add_test(NAME tcp_io_tests COMMAND tcp_io_tests)
 set_tests_properties(tcp_io_tests PROPERTIES TIMEOUT 10)
+
+add_executable(job_client src/job_client.cpp)
+target_link_libraries(job_client PRIVATE heterosched_core)
+
+add_executable(job_submission_tests tests/job_submission_test.cpp)
+target_link_libraries(job_submission_tests PRIVATE heterosched_core Threads::Threads)
+
+add_test(NAME job_submission_tests COMMAND job_submission_tests)

@@ -14,16 +14,12 @@
 #include "worker.h"
 #include "registration.h"
 #include "tcp_io.h"
+#include "job_submission.h"
 
-void handleRegistration(int clientFd, Scheduler& scheduler) {
-    // 阻塞
-    const auto message = receiveLine(clientFd);
+void handleRegistration(int clientFd, const std::string& line, Scheduler& scheduler) {
+    std::cout << "Received: " << line << std::endl;
 
-    if (!message) return;
-
-    std::cout << "Received: " << *message << std::endl;
-
-    const auto worker = parseRegistration(*message);
+    const auto worker = parseRegistration(line);
 
     if (!worker) {
         std::cerr << "Invalid registration message" << std::endl;
@@ -46,6 +42,54 @@ void handleRegistration(int clientFd, Scheduler& scheduler) {
     std::cout << "Registered Worker " << worker->getId()
         << ", worker count: " << scheduler.workerCount()
         << std::endl;
+}
+
+void handleJobSubmission(int clientFd, const std::string& line, Scheduler& scheduler) {
+    std::cout << "Received: " << line << std::endl;
+
+    const auto job = parseJobSubmission(line);
+
+    if (!job) {
+        std::cerr << "Invalid job message" << std::endl;
+
+        if (!sendAll(clientFd, "SUBMIT_ERROR INVALID_MESSAGE\n")) return;
+
+        return;
+    }
+
+    if (!scheduler.submitJob(*job)) {
+        std::cerr << "Job submit rejected" << std::endl;
+
+        if (!sendAll(clientFd, "SUBMIT_ERROR JOB_REJECTED\n")) return;
+
+        return;
+    }
+
+    if (!sendAll(clientFd, "SUBMIT_OK\n")) return;
+
+    std::cout << "Submit job " << job->jobId
+        << ", waiting job count: " << scheduler.waitingJobCount()
+        << ", running job count: " << scheduler.runningJobCount()
+        << std::endl;
+}
+
+void handleClient(int clientFd, Scheduler& scheduler) {
+    const auto message = receiveLine(clientFd);
+    if (!message) {
+        return;
+    }
+
+    std::istringstream input(*message);
+    std::string command;
+    input >> command;
+
+    if (command == "REGISTER_WORKER") {
+        handleRegistration(clientFd, *message, scheduler);
+    } else if (command == "SUBMIT_JOB") {
+        handleJobSubmission(clientFd, *message, scheduler);
+    } else {
+        if (!sendAll(clientFd, "REQUEST_ERROR UNKNOWN_COMMAND\n")) return;
+    }
 }
 
 int main() {
@@ -110,7 +154,9 @@ int main() {
             continue;
         }
 
-        handleRegistration(clientFd, scheduler);
+        handleClient(clientFd, scheduler);
+        std::cout << std::endl;
+        
         close(clientFd);
     }
 
