@@ -15,6 +15,8 @@ add_library(heterosched_core
     src/scheduler.cpp
     src/registration.cpp
     src/job_submission.cpp
+    src/job_completion.cpp
+    src/scheduler_protocol.cpp
     src/tcp_io.cpp
 )
 
@@ -96,3 +98,14 @@ add_executable(job_submission_tests tests/job_submission_test.cpp)
 target_link_libraries(job_submission_tests PRIVATE heterosched_core Threads::Threads)
 
 add_test(NAME job_submission_tests COMMAND job_submission_tests)
+
+add_executable(scheduler_client src/scheduler_client.cpp)
+target_link_libraries(scheduler_client PRIVATE heterosched_core Threads::Threads)
+
+add_executable(job_completion_tests tests/job_completion_test.cpp)
+target_link_libraries(job_completion_tests PRIVATE heterosched_core)
+add_test(NAME job_completion_tests COMMAND job_completion_tests)
+
+add_executable(scheduler_protocol_tests tests/scheduler_protocol_test.cpp)
+target_link_libraries(scheduler_protocol_tests PRIVATE heterosched_core Threads::Threads)
+add_test(NAME scheduler_protocol_tests COMMAND scheduler_protocol_tests)
