@@ -1,12 +1,12 @@
-#include "scheduler_protocol.h"
+#include "protocol/scheduler_protocol.h"
 
 #include <charconv>
 #include <sstream>
 #include <system_error>
 
-#include "job_completion.h"
-#include "job_submission.h"
-#include "registration.h"
+#include "protocol/job_completion.h"
+#include "protocol/job_submission.h"
+#include "protocol/registration.h"
 
 namespace {
 

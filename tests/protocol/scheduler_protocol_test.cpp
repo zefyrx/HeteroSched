@@ -4,7 +4,7 @@
 #include <utility>
 #include <vector>
 
-#include "scheduler_protocol.h"
+#include "protocol/scheduler_protocol.h"
 
 namespace {
 

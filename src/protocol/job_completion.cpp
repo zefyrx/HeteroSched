@@ -1,4 +1,4 @@
-#include "job_completion.h"
+#include "protocol/job_completion.h"
 
 #include <sstream>
 

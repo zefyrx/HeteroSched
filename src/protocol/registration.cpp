@@ -1,23 +1,23 @@
-#include "job_submission.h"
+#include "protocol/registration.h"
 
 #include <sstream>
 
-std::optional<Job> parseJobSubmission(const std::string& line) {
+std::optional<Worker> parseRegistration(const std::string& line) {
     std::istringstream input(line);
 
     std::string command;
-    int jobId = 0;
+    int workerId = 0;
     int cpuCores = 0;
     int memoryMB = 0;
 
     // 提取 command 和三个整数。
     // 提取失败则返回 std::nullopt。
-    if (! (input >> command >> jobId >> cpuCores >> memoryMB)) {
+    if (! (input >> command >> workerId >> cpuCores >> memoryMB)) {
         return std::nullopt;
     }
 
-    // command 必须等于 "SUBMIT_JOB"。
-    if (command != "SUBMIT_JOB") {
+    // command 必须等于 "REGISTER_WORKER"。
+    if (command != "REGISTER_WORKER") {
         return std::nullopt;
     }
 
@@ -29,10 +29,10 @@ std::optional<Job> parseJobSubmission(const std::string& line) {
 
     const Resource resource{cpuCores, memoryMB};
 
-    // jobId >= 0，且 hasPositiveResources(resource)。
-    if (!(jobId >= 0 && hasPositiveResources(resource))) {
+    // workerId >= 0，且 hasPositiveResources(resource)。
+    if (!(workerId >= 0 && hasPositiveResources(resource))) {
         return std::nullopt;
     }
 
-    return Job{jobId, Resource{cpuCores, memoryMB}};
+    return Worker{workerId, resource};
 }

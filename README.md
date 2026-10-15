@@ -4,6 +4,40 @@ HeteroSched 是一个使用 C++17 逐步构建的轻量级资源调度器学习�
 
 当前进度：Phase 1 单进程调度已完成；Phase 2 已实现基础 TCP 通信、多个 Worker 串行注册、接收超时，以及提交、调度、完成的手动网络闭环。提交成功表示入队，调度成功表示资源已分配并加入运行记录，完成接口模拟任务结束并释放资源。Worker 尚未接收或执行任务；实际网络 Job 分发、执行结果回报、心跳和 GPU 调度属于后续计划。
 
+## 目录结构
+
+公共头文件、实现和测试按同一组职责分类；可执行程序的入口统一放在 `apps/`。
+
+```text
+HeteroSched/
+├── apps/                       # 五个可执行程序入口
+│   ├── demo_main.cpp            # 单进程演示，对应 heterosched
+│   ├── scheduler_server.cpp
+│   ├── worker_client.cpp
+│   ├── job_client.cpp
+│   └── scheduler_client.cpp
+├── include/                    # 公共接口
+│   ├── core/                   # Resource、Job、Worker、Scheduler
+│   ├── net/                    # TCP 字节流收发
+│   └── protocol/               # 注册、提交、完成和调度协议
+├── src/                        # 与 include/ 分类对应的实现
+│   ├── core/
+│   ├── net/
+│   └── protocol/
+├── tests/                      # 按被测模块分组
+│   ├── core/
+│   ├── net/
+│   └── protocol/
+├── benchmarks/
+│   └── scheduler_benchmark.cpp
+├── CMakeLists.txt
+└── README.md
+```
+
+头文件引用包含模块路径，例如 `#include "core/job.h"`、`#include "net/tcp_io.h"` 和 `#include "protocol/scheduler_protocol.h"`。`Job` 是纯数据结构，直接定义在 `include/core/job.h` 中，不需要空的实现文件。
+
+CMake 构建三个可复用库：`heterosched_core` 管理领域状态与调度，`heterosched_net` 提供 socket 收发，`heterosched_protocol` 依赖 core 并负责协议处理。`apps/` 按需链接这些库；单进程演示和 benchmark 只依赖 core，Worker/Job 客户端只依赖 net。可执行文件名和下面的运行命令保持一致。
+
 ## 当前架构
 
 ### 单进程调度演示
@@ -51,7 +85,7 @@ scheduler_server 进程
     close(clientFd) -> 回到 accept()
 ```
 
-三类客户端每次启动都只发送一条请求。`main()` 拥有监听 socket 和 Scheduler，负责循环接受连接、配置接收超时及关闭客户端 socket。`handleClient()` 只接收一次完整行，再调用 `processSchedulerRequest()`。协议处理函数位于 `src/scheduler_protocol.cpp`，按精确命令名分流，校验后调用 Scheduler 并返回带换行的响应；网络入口负责发送结果。请求错误只结束该连接，服务端继续接受下一个连接。
+三类客户端每次启动都只发送一条请求。`main()` 拥有监听 socket 和 Scheduler，负责循环接受连接、配置接收超时及关闭客户端 socket。`handleClient()` 只接收一次完整行，再调用 `processSchedulerRequest()`。协议处理函数位于 `src/protocol/scheduler_protocol.cpp`，按精确命令名分流，校验后调用 Scheduler 并返回带换行的响应；网络入口负责发送结果。请求错误只结束该连接，服务端继续接受下一个连接。
 
 Scheduler 创建在 `accept()` 循环外，四类请求共享同一个服务端的内存状态。网络服务端与单进程调度演示使用各自独立的 Scheduler 实例。`submitJob()` 只负责入队和 Job ID 去重；`SCHEDULE_NEXT` 显式触发 `scheduleNext()` 扣减资源；`COMPLETE_JOB` 显式触发 `completeJob()` 回收资源。Worker 客户端仍只执行注册，不接收或执行 Job。
 

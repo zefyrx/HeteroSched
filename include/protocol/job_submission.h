@@ -4,7 +4,7 @@
 #include <optional>
 #include <string>
 
-#include "job.h"
+#include "core/job.h"
 
 std::optional<Job> parseJobSubmission(const std::string& line);
 

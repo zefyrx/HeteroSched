@@ -1,7 +1,7 @@
 #include <iostream>
 #include <vector>
 
-#include "registration.h"
+#include "protocol/registration.h"
 
 bool testNormalRegistration() {
     const auto worker =

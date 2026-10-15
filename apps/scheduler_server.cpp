@@ -8,9 +8,9 @@
 #include <cerrno>
 #include <string>
 
-#include "scheduler.h"
-#include "scheduler_protocol.h"
-#include "tcp_io.h"
+#include "core/scheduler.h"
+#include "protocol/scheduler_protocol.h"
+#include "net/tcp_io.h"
 
 void printSchedulerState(const Scheduler& scheduler) {
     std::cout << "State: workers=" << scheduler.workerCount()

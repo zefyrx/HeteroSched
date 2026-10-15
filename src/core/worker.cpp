@@ -1,4 +1,4 @@
-#include "worker.h"
+#include "core/worker.h"
 
 Worker::Worker(int workerId, const Resource& totalResource) 
     : workerId_(workerId),

@@ -4,7 +4,7 @@
 #include <optional>
 #include <string>
 
-#include "scheduler.h"
+#include "core/scheduler.h"
 
 // 正文不含换行；先校验再修改状态，返回带换行的响应。
 std::string processSchedulerRequest(const std::string& line, Scheduler& scheduler);

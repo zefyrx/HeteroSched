@@ -3,9 +3,9 @@
 #include <string>
 #include <vector>
 
-#include "job_submission.h"
-#include "scheduler.h"
-#include "worker.h"
+#include "protocol/job_submission.h"
+#include "core/scheduler.h"
+#include "core/worker.h"
 
 namespace {
 

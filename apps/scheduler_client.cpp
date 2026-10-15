@@ -7,8 +7,8 @@
 #include <sstream>
 #include <string>
 
-#include "scheduler_protocol.h"
-#include "tcp_io.h"
+#include "protocol/scheduler_protocol.h"
+#include "net/tcp_io.h"
 
 int main(int argc, char* argv[]) {
     std::string request;

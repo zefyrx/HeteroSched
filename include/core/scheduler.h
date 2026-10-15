@@ -9,8 +9,8 @@
 #include <unordered_set>
 #include <mutex>
 
-#include "job.h"
-#include "worker.h"
+#include "core/job.h"
+#include "core/worker.h"
 
 enum class SchedulingPolicy {
     FirstFit,

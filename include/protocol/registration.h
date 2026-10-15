@@ -4,7 +4,7 @@
 #include <optional>
 #include <string>
 
-#include "worker.h"
+#include "core/worker.h"
 
 std::optional<Worker> parseRegistration(const std::string& line);
 

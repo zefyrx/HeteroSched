@@ -1,5 +1,5 @@
-#include "scheduler.h"
-#include "resource.h"
+#include "core/scheduler.h"
+#include "core/resource.h"
 
 Scheduler::Scheduler(SchedulingPolicy policy)
     : policy_(policy) {

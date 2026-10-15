@@ -1,8 +1,8 @@
 #ifndef HETEROSCHED_WORKER_H
 #define HETEROSCHED_WORKER_H
 
-#include "job.h"
-#include "resource.h"
+#include "core/job.h"
+#include "core/resource.h"
 
 class Worker {
 public:

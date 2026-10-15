@@ -3,9 +3,9 @@
 #include <thread>
 #include <functional>
 
-#include "job.h"
-#include "scheduler.h"
-#include "worker.h"
+#include "core/job.h"
+#include "core/scheduler.h"
+#include "core/worker.h"
 
 void executeJob(int workerId, int jobId, int durationMs, Scheduler& scheduler) {
     std::cout << "Worker " << workerId

@@ -4,7 +4,7 @@
 #include <utility>
 #include <vector>
 
-#include "job_completion.h"
+#include "protocol/job_completion.h"
 
 int main() {
     const int maximum = std::numeric_limits<int>::max();

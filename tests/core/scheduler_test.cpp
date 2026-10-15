@@ -2,9 +2,9 @@
 #include <thread>
 #include <vector>
 
-#include "job.h"
-#include "scheduler.h"
-#include "worker.h"
+#include "core/job.h"
+#include "core/scheduler.h"
+#include "core/worker.h"
 
 bool testBinPackChoosesTighterWorker() {
     Scheduler scheduler{SchedulingPolicy::BinPack};
