@@ -1,6 +1,8 @@
 #include "core/scheduler.h"
 #include "core/resource.h"
 
+#include <algorithm>
+
 Scheduler::Scheduler(SchedulingPolicy policy)
     : policy_(policy) {
 }
@@ -68,6 +70,10 @@ std::size_t Scheduler::waitingJobCount() const {
 std::optional<ScheduleResult> Scheduler::scheduleNext() {
     std::lock_guard<std::mutex> lock(mutex_);
 
+    return scheduleNextLocked();
+}
+
+std::optional<ScheduleResult> Scheduler::scheduleNextLocked() {
     if (waitingJobs_.empty()) {
         return std::nullopt;
     }
@@ -86,6 +92,8 @@ std::optional<ScheduleResult> Scheduler::scheduleNext() {
     runningJobs_.emplace(jobId, runningJob);
 
     waitingJobs_.pop();
+
+    pendingDispatches_[workerId].push_back(jobId);
 
     return ScheduleResult{jobId, workerId};
 }
@@ -208,6 +216,16 @@ bool Scheduler::completeJob(int jobId) {
         return false;
     }
 
+    // 手动完成可能发生在 Worker 领取前，不能再派发已完成的任务。
+    const auto pending = pendingDispatches_.find(worker.getId());
+    if (pending != pendingDispatches_.end()) {
+        auto& jobIds = pending->second;
+        jobIds.erase(std::remove(jobIds.begin(), jobIds.end(), jobId), jobIds.end());
+        if (jobIds.empty()) {
+            pendingDispatches_.erase(pending);
+        }
+    }
+
     // 释放成功后从 runningJobs_ 删除记录
     runningJobs_.erase(jobId);
 
@@ -235,4 +253,40 @@ std::vector<WorkerSnapshot> Scheduler::getWorkerSnapshots() const {
     }
 
     return snapshots;
+}
+
+std::optional<Job> Scheduler::takePendingJobLocked(int workerId) {
+    const auto pending = pendingDispatches_.find(workerId);
+    if (pending == pendingDispatches_.end()) {
+        return std::nullopt;
+    }
+
+    auto& jobIds = pending->second;
+    const Job job = runningJobs_.at(jobIds.front()).job;
+    jobIds.pop_front();
+    if (jobIds.empty()) {
+        pendingDispatches_.erase(pending);
+    }
+    // 领取只移除派发记录；运行记录与已预留资源保留到完成时。
+    return job;
+}
+
+FetchResult Scheduler::fetchJob(int workerId) {
+    std::lock_guard<std::mutex> lock(mutex_);
+
+    if (!workerIds_.count(workerId)) {
+        return FetchResult{FetchStatus::UnknownWorker, std::nullopt};
+    }
+
+    if (const auto job = takePendingJobLocked(workerId)) {
+        return FetchResult{FetchStatus::Assigned, *job};
+    }
+
+    scheduleNextLocked();
+
+    if (const auto job = takePendingJobLocked(workerId)) {
+        return FetchResult{FetchStatus::Assigned, *job};
+    }
+
+    return FetchResult{FetchStatus::NoJob, std::nullopt};
 }

@@ -91,6 +91,15 @@ bool testMalformedRequestsDoNotMutateState() {
         {"SCHEDULE_NEXT extra", "SCHEDULE_ERROR INVALID_MESSAGE\n"},
         {"SCHEDULE_NEXT 1", "SCHEDULE_ERROR INVALID_MESSAGE\n"},
         {"SCHEDULE_NEXT_EXTRA", "REQUEST_ERROR UNKNOWN_COMMAND\n"},
+        {"FETCH_JOB", "FETCH_ERROR INVALID_MESSAGE\n"},
+        {"FETCH_JOB -1", "FETCH_ERROR INVALID_MESSAGE\n"},
+        {"FETCH_JOB abc", "FETCH_ERROR INVALID_MESSAGE\n"},
+        {"FETCH_JOB 1abc", "FETCH_ERROR INVALID_MESSAGE\n"},
+        {"FETCH_JOB 1+2", "FETCH_ERROR INVALID_MESSAGE\n"},
+        {"FETCH_JOB 1 extra", "FETCH_ERROR INVALID_MESSAGE\n"},
+        {"FETCH_JOB 999999999999999999999", "FETCH_ERROR INVALID_MESSAGE\n"},
+        {"FETCH_JOB 2", "FETCH_ERROR UNKNOWN_WORKER\n"},
+        {"FETCH_JOB_EXTRA 1", "REQUEST_ERROR UNKNOWN_COMMAND\n"},
         {"COMPLETE_JOB", "COMPLETE_ERROR INVALID_MESSAGE\n"},
         {"COMPLETE_JOB 101 extra", "COMPLETE_ERROR INVALID_MESSAGE\n"},
         {"COMPLETE_JOB -1", "COMPLETE_ERROR INVALID_MESSAGE\n"},
@@ -126,7 +135,62 @@ bool testStrictFifoIsPreserved() {
            expectResponse(scheduler, "SUBMIT_JOB 201 3 1024", "SUBMIT_OK\n") &&
            expectResponse(scheduler, "SUBMIT_JOB 202 1 1024", "SUBMIT_OK\n") &&
            expectResponse(scheduler, "SCHEDULE_NEXT", "SCHEDULE_NONE\n") &&
+           expectResponse(scheduler, "FETCH_JOB 1", "NO_JOB\n") &&
            expectState(scheduler, 2, 0, 2, 4096);
+}
+
+bool testFetchLifecycle() {
+    Scheduler scheduler;
+    return expectResponse(scheduler, "FETCH_JOB 1", "FETCH_ERROR UNKNOWN_WORKER\n") &&
+           expectResponse(scheduler, "REGISTER_WORKER 1 2 4096", "REGISTER_OK\n") &&
+           expectResponse(scheduler, "FETCH_JOB 1", "NO_JOB\n") &&
+           expectResponse(scheduler, "SUBMIT_JOB 101 2 4096", "SUBMIT_OK\n") &&
+           expectResponse(scheduler, "SUBMIT_JOB 102 1 1024", "SUBMIT_OK\n") &&
+           expectResponse(scheduler, " \tFETCH_JOB +1 \t", "RUN_JOB 101 2 4096\n") &&
+           expectState(scheduler, 1, 1, 0, 0) &&
+           expectResponse(scheduler, "FETCH_JOB 1", "NO_JOB\n") &&
+           expectResponse(scheduler, "COMPLETE_JOB 101", "COMPLETE_OK\n") &&
+           expectResponse(scheduler, "FETCH_JOB 1", "RUN_JOB 102 1 1024\n") &&
+           expectState(scheduler, 0, 1, 1, 3072) &&
+           expectResponse(scheduler, "COMPLETE_JOB 102", "COMPLETE_OK\n") &&
+           expectResponse(scheduler, "FETCH_JOB 1", "NO_JOB\n") &&
+           expectState(scheduler, 0, 0, 2, 4096) &&
+           expectResponse(scheduler, "SUBMIT_JOB 103 1 1024", "SUBMIT_OK\n") &&
+           expectResponse(scheduler, "SCHEDULE_NEXT", "SCHEDULE_OK 103 1\n") &&
+           expectResponse(scheduler, "COMPLETE_JOB 103", "COMPLETE_OK\n") &&
+           expectResponse(scheduler, "FETCH_JOB 1", "NO_JOB\n");
+}
+
+bool testRunJobParsing() {
+    const auto normal = parseRunJob("RUN_JOB 101 2 4096");
+    const auto zero = parseRunJob(" \tRUN_JOB 0 1 1 \t");
+    const std::string maximum = std::to_string(std::numeric_limits<int>::max());
+    const auto boundary = parseRunJob("RUN_JOB " + maximum + " " + maximum + " " + maximum);
+    if (!normal || normal->jobId != 101 || normal->requiredResource.cpuCores != 2 ||
+        normal->requiredResource.memoryMB != 4096 || !zero || zero->jobId != 0 ||
+        !boundary || boundary->jobId != std::numeric_limits<int>::max() ||
+        boundary->requiredResource.cpuCores != std::numeric_limits<int>::max() ||
+        boundary->requiredResource.memoryMB != std::numeric_limits<int>::max()) {
+        std::cerr << "FAIL: valid RUN_JOB response rejected\n";
+        return false;
+    }
+    const std::vector<std::string> invalidMessages = {
+        "", "RUN_JOB", "RUN_JOB 101 2", "RUN_JOB 101 2 4096 extra",
+        "RUN_JOB -1 2 4096", "RUN_JOB +1 2 4096", "RUN_JOB 101 0 4096",
+        "RUN_JOB 101 2 0", "RUN_JOB 101 -1 4096", "RUN_JOB 101 2 -1",
+        "RUN_JOB abc 2 4096", "RUN_JOB 101 2abc 4096", "RUN_JOB 101 2 4096abc",
+        "RUN_JOB 101+2+4096", "RUN_JOB 999999999999999999999 2 4096",
+        "RUN_JOB 101 999999999999999999999 4096",
+        "RUN_JOB 101 2 999999999999999999999", "RUN_JOB_EXTRA 101 2 4096",
+        "NO_JOB", "SCHEDULE_OK 101 1", "COMPLETE_OK",
+    };
+    for (const auto& message : invalidMessages) {
+        if (parseRunJob(message)) {
+            std::cerr << "FAIL: invalid RUN_JOB response accepted: " << message << '\n';
+            return false;
+        }
+    }
+    return true;
 }
 
 bool testScheduleResponseParsing() {
@@ -170,6 +234,8 @@ int main() {
         {"invalid requests preserve state", testMalformedRequestsDoNotMutateState},
         {"strict FIFO over the protocol", testStrictFifoIsPreserved},
         {"schedule response parsing", testScheduleResponseParsing},
+        {"Worker fetch lifecycle", testFetchLifecycle},
+        {"RUN_JOB response parsing", testRunJobParsing},
     };
 
     for (const auto& test : tests) {

@@ -8,6 +8,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <mutex>
+#include <deque>
 
 #include "core/job.h"
 #include "core/worker.h"
@@ -16,6 +17,17 @@ enum class SchedulingPolicy {
     FirstFit,
     BinPack,
     LeastAllocated
+};
+
+enum class FetchStatus {
+    Assigned,
+    NoJob,
+    UnknownWorker
+};
+
+struct FetchResult {
+    FetchStatus status;
+    std::optional<Job> job;
 };
 
 struct ScheduleResult {
@@ -58,6 +70,9 @@ public:
     // 返回同一时刻所有 Worker 的资源状态副本
     std::vector<WorkerSnapshot> getWorkerSnapshots() const;
 
+    // 优先领取本 Worker 的待派发任务，否则触发一次全局调度后再领取。
+    FetchResult fetchJob(int workerId);
+
 private:
     struct RunningJob {
         Job job;
@@ -69,6 +84,7 @@ private:
     std::unordered_map<int, RunningJob> runningJobs_;       // <jobId, RunningJob>
     std::unordered_set<int> submittedJobIds_;
     std::unordered_set<int> workerIds_;
+    std::unordered_map<int, std::deque<int>> pendingDispatches_;    // <workerId, jobIds>
 
     std::vector<Worker> workers_;
     std::queue<Job> waitingJobs_;
@@ -76,6 +92,10 @@ private:
 
     // 为 Job 选择 Worker、分配资源并返回 Worker 下标
     std::optional<std::size_t> schedule(const Job& job);
+
+    // 以下两个辅助函数要求调用方已持有 mutex_，内部不再加锁。
+    std::optional<ScheduleResult> scheduleNextLocked();
+    std::optional<Job> takePendingJobLocked(int workerId);
 
     // 根据当前策略选择一个能够运行 Job 的 Worker 下标
     std::optional<std::size_t> selectWorker(const Job& job) const;

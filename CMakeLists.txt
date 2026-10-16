@@ -37,7 +37,7 @@ add_executable(scheduler_server apps/scheduler_server.cpp)
 target_link_libraries(scheduler_server PRIVATE heterosched_protocol heterosched_net)
 
 add_executable(worker_client apps/worker_client.cpp)
-target_link_libraries(worker_client PRIVATE heterosched_net)
+target_link_libraries(worker_client PRIVATE heterosched_protocol heterosched_net)
 
 add_executable(job_client apps/job_client.cpp)
 target_link_libraries(job_client PRIVATE heterosched_net)
@@ -54,6 +54,11 @@ enable_testing()
 add_executable(scheduler_tests tests/core/scheduler_test.cpp)
 target_link_libraries(scheduler_tests PRIVATE heterosched_core)
 add_test(NAME scheduler_tests COMMAND scheduler_tests)
+
+add_executable(job_dispatch_tests tests/core/job_dispatch_test.cpp)
+target_link_libraries(job_dispatch_tests PRIVATE heterosched_core)
+add_test(NAME job_dispatch_tests COMMAND job_dispatch_tests)
+set_tests_properties(job_dispatch_tests PROPERTIES TIMEOUT 10)
 
 add_executable(tcp_io_tests tests/net/tcp_io_test.cpp)
 target_link_libraries(tcp_io_tests PRIVATE heterosched_net)

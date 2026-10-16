@@ -1,8 +1,8 @@
 # HeteroSched
 
-HeteroSched 是一个使用 C++17 逐步构建的轻量级资源调度器学习项目。已完成单进程资源调度，并通过阻塞式 TCP 提供 Worker 注册、Job 提交、手动触发调度及模拟完成接口。Scheduler 服务端持续监听，串行处理请求，维护队列、运行记录和 Worker 资源，并向客户端反馈结果。
+HeteroSched 是一个使用 C++17 逐步构建的轻量级资源调度器学习项目。已完成单进程资源调度，并通过阻塞式 TCP 支持 Worker 注册、Job 提交、任务领取和完成上报。Worker 使用短连接轮询，自动领取任务、模拟执行并上报完成；Scheduler 串行处理请求，维护队列、运行记录和 Worker 资源。
 
-当前进度：Phase 1 单进程调度已完成；Phase 2 已实现基础 TCP 通信、多个 Worker 串行注册、接收超时，以及提交、调度、完成的手动网络闭环。提交成功表示入队，调度成功表示资源已分配并加入运行记录，完成接口模拟任务结束并释放资源。Worker 尚未接收或执行任务；实际网络 Job 分发、执行结果回报、心跳和 GPU 调度属于后续计划。
+当前进度：Phase 1 单进程调度已完成；Phase 2 已实现 Worker 自动领取、模拟执行、完成上报的网络闭环，并保留手动调度与完成接口。提交成功表示入队，调度成功表示资源已预留，领取成功表示派发记录已消费，完成成功表示资源已释放。目前执行使用 500 ms 的休眠模拟，真实工作负载、心跳、故障恢复和 GPU 调度属于后续计划。
 
 ## 目录结构
 
@@ -36,7 +36,7 @@ HeteroSched/
 
 头文件引用包含模块路径，例如 `#include "core/job.h"`、`#include "net/tcp_io.h"` 和 `#include "protocol/scheduler_protocol.h"`。`Job` 是纯数据结构，直接定义在 `include/core/job.h` 中，不需要空的实现文件。
 
-CMake 构建三个可复用库：`heterosched_core` 管理领域状态与调度，`heterosched_net` 提供 socket 收发，`heterosched_protocol` 依赖 core 并负责协议处理。`apps/` 按需链接这些库；单进程演示和 benchmark 只依赖 core，Worker/Job 客户端只依赖 net。可执行文件名和下面的运行命令保持一致。
+CMake 构建三个可复用库：`heterosched_core` 管理领域状态与调度，`heterosched_net` 提供 socket 收发，`heterosched_protocol` 依赖 core 并负责协议处理。`apps/` 按需链接这些库；单进程演示和 benchmark 只依赖 core，Job 客户端只依赖 net，Worker 客户端依赖 protocol 和 net。可执行文件名和下面的运行命令保持一致。
 
 ## 当前架构
 
@@ -78,6 +78,7 @@ scheduler_server 进程
             +-- REGISTER_WORKER -> parseRegistration() -> addWorker()
             +-- SUBMIT_JOB      -> parseJobSubmission() -> submitJob()
             +-- SCHEDULE_NEXT   -> 校验无参数          -> scheduleNext()
+            +-- FETCH_JOB       -> 校验 Worker ID     -> fetchJob()
             +-- COMPLETE_JOB    -> parseJobCompletion()-> completeJob()
             +-- 未知命令        -> REQUEST_ERROR UNKNOWN_COMMAND
         sendAll() 发送处理结果
@@ -85,9 +86,24 @@ scheduler_server 进程
     close(clientFd) -> 回到 accept()
 ```
 
-三类客户端每次启动都只发送一条请求。`main()` 拥有监听 socket 和 Scheduler，负责循环接受连接、配置接收超时及关闭客户端 socket。`handleClient()` 只接收一次完整行，再调用 `processSchedulerRequest()`。协议处理函数位于 `src/protocol/scheduler_protocol.cpp`，按精确命令名分流，校验后调用 Scheduler 并返回带换行的响应；网络入口负责发送结果。请求错误只结束该连接，服务端继续接受下一个连接。
+每条连接只处理一条请求。Job 客户端和控制客户端每次启动只发一个请求；Worker 客户端注册成功后长期运行，每次领取与完成上报都重新建立短连接。`main()` 拥有监听 socket 和 Scheduler，负责循环接受连接、配置接收超时及关闭客户端 socket。`handleClient()` 只接收一次完整行，再调用 `processSchedulerRequest()`。协议处理函数位于 `src/protocol/scheduler_protocol.cpp`，按精确命令名分流，校验后调用 Scheduler 并返回带换行的响应；网络入口负责发送结果。请求错误只结束该连接，服务端继续接受下一个连接。
 
-Scheduler 创建在 `accept()` 循环外，四类请求共享同一个服务端的内存状态。网络服务端与单进程调度演示使用各自独立的 Scheduler 实例。`submitJob()` 只负责入队和 Job ID 去重；`SCHEDULE_NEXT` 显式触发 `scheduleNext()` 扣减资源；`COMPLETE_JOB` 显式触发 `completeJob()` 回收资源。Worker 客户端仍只执行注册，不接收或执行 Job。
+Scheduler 创建在 `accept()` 循环外，五类请求共享同一个服务端的内存状态。网络服务端与单进程演示使用各自独立的 Scheduler 实例。`submitJob()` 只负责入队和 Job ID 去重；手动调度或 Worker 领取请求可触发资源预留；`COMPLETE_JOB` 回收资源。
+
+任务经过三个阶段：
+
+```text
+waitingJobs_（未分配）
+    -> 全局策略选择 Worker，扣减资源
+runningJobs_ + pendingDispatches_[workerId]（已预留，待领取）
+    -> 对应 Worker 领取，移除 pending 中的 Job ID
+runningJobs_（已交付，等待完成）
+    -> COMPLETE_JOB 释放资源，删除运行记录
+```
+
+`pendingDispatches_` 按 Worker 保存 FIFO Job ID 队列，Job 内容仍保存在 `runningJobs_`。它从空表开始，在调度成功时按需加入记录，无需预先扫描初始化。`fetchJob()` 在同一把 mutex 下先检查 Worker 是否存在，再优先领取自己的待派发任务；若没有，只尝试调度等待队首这一个 Job，然后再次领取自己的任务。全局调度可能把任务分给其他 Worker，此时调用方返回 `NO_JOB`，目标 Worker 后续领取。未知 Worker 不触发调度。
+
+领取不再次扣资源，也不删除运行记录；重复领取不会返回同一条派发记录。手动完成尚未领取的 Job 会同步移除其待派发 ID，避免下次发送已完成任务。`scheduleNextLocked()` 和 `takePendingJobLocked()` 供已持锁的调用方使用，避免嵌套锁定非递归 mutex。
 
 服务端对每条完整请求输出 `Received`、生成的 `Response`、等待/运行数量以及各 Worker 的可用 CPU 和内存。状态在响应发送之前修改和打印；这些日志不证明客户端已经收到响应。
 
@@ -124,6 +140,9 @@ Scheduler 创建在 `accept()` 循环外，四类请求共享同一个服务端�
 - 手动网络调度返回 Job/Worker 分配结果，失败保留 FIFO 队首
 - 手动完成通知释放资源，拒绝等待中、未知或重复完成的 Job
 - 调度控制客户端校验响应字段及操作类型，服务端输出状态和资源快照
+- Worker 按秒轮询领取本节点任务，校验 `RUN_JOB` 响应并模拟执行 500 ms
+- Worker 自动完成上报、确认后继续领取，每个 Worker 进程串行执行任务
+- 每个 Worker 的 FIFO 待派发队列、单次领取及手动完成后的派发清理
 
 如果 FIFO 队首 Job 无法在任何 Worker 上运行，它会继续留在队列中，后续 Job 不会越过它。这保持了严格 FIFO，但也可能造成队头阻塞（head-of-line blocking）。
 
@@ -166,108 +185,81 @@ Worker 1 finished Job 1
 Completed Job 1 and 2 and released its resources
 ```
 
-### 运行 TCP Worker 注册演示
+### 运行 Worker 自动执行闭环
 
-构建完成后，在项目根目录打开两个终端。先在终端一启动服务端：
+打开三个终端，在项目根目录操作。终端一启动全新的服务端：
 
 ```bash
 ./build/scheduler_server
 ```
 
-服务端监听 `127.0.0.1:9000`，输出监听日志后等待连接。再在终端二启动客户端：
+服务端监听 `127.0.0.1:9000`。终端二启动 Worker：
 
 ```bash
-./build/worker_client 1 8 16384
+./build/worker_client 1 2 4096
 ```
 
-三个命令行参数依次为 Worker ID、CPU 核数和内存 MB。客户端只检查参数数量，直接将参数文本拼入注册消息；整数转换、资源约束和 ID 校验由服务端完成。上述命令注册 Worker `1`，CPU 为 `8` 核、内存为 `16384 MB`。客户端输出：
+参数依次为 Worker ID、CPU 核数、内存 MB。客户端只检查参数数量，将原始参数发给服务端解析和校验。注册成功后，Worker 保持运行，空闲时每隔 1 秒发起一次 `FETCH_JOB`，不会退出：
 
 ```text
 Connected to Scheduler at 127.0.0.1:9000
 Registration message sent
 Registration success
+No Job available; retrying in 1s
 ```
 
-服务端输出：
-
-```text
-Listening on 127.0.0.1:9000
-Client connected
-Received: REGISTER_WORKER 1 8 16384
-Response: REGISTER_OK
-State: workers=1, waiting=0, running=0
-Worker 1: available CPU=8, memoryMB=16384
-```
-
-客户端完成一次注册尝试后退出；服务端关闭该客户端连接后，继续等待下一次连接。`Registration message sent` 只表示消息已提交给本地 socket；服务端注册成功后回复 `REGISTER_OK`，客户端收到确认后打印 `Registration success`。注册失败时，客户端展示服务端返回的错误码并以非零状态退出。
-
-### 验证连续注册与错误请求
-
-启动一次服务端后，在另一个终端依次执行以下命令，中间不重启服务端：
+`Registration message sent` 只表示发送成功；收到 `REGISTER_OK` 才表示注册成功。终端三提交两个任务：
 
 ```bash
-./build/worker_client 1 8 16384
-./build/worker_client -1 4 8192
-./build/worker_client 1 4 8192
-./build/worker_client 2 4 8192
-```
-
-以上序列从刚启动、尚未注册任何 Worker 的服务端开始；如果已经运行了前面的 Worker 1 演示，第一条请求会被视为重复注册。
-
-| 请求 | 客户端结果 | 服务端 Worker 数量 |
-|---|---|---|
-| 首次注册 ID 1 | `Registration success` | 1 |
-| 负 ID | `Registration failed: INVALID_MESSAGE` | 1 |
-| 再次注册 ID 1 | `Registration failed: WORKER_REJECTED` | 1 |
-| 注册 ID 2 | `Registration success` | 2 |
-
-服务端成功注册 Worker 2 时输出 `State: workers=2, waiting=0, running=0`。非法输入和重复注册不会终止服务端，也不会增加 Worker 数量。实验结束后，在服务端终端按 `Ctrl+C` 停止程序；下次启动时状态重新为空。
-
-### 运行网络 Job 提交演示
-
-在一个新启动的服务端上，先提交任务，再注册 Worker：
-
-```bash
-./build/job_client 101 2 4096
-./build/worker_client 101 8 16384
-./build/job_client 102 1 2048
-```
-
-Job ID 与 Worker ID 可以相同。Job 客户端的三个参数依次为 Job ID、CPU 核数和内存 MB，仍只检查参数数量，参数内容由服务端解析和校验。即使尚未注册任何 Worker，合法 Job 也能进入等待队列。客户端成功时输出：
-
-```text
-Connected to Scheduler at 127.0.0.1:9000
-Submit message sent
-Submit success
-```
-
-服务端两次提交对应的状态日志为：
-
-```text
-State: workers=0, waiting=1, running=0
-State: workers=1, waiting=2, running=0
-```
-
-`Submit success` 表示入队成功，不表示已开始运行或执行完成。继续验证错误输入：
-
-```bash
-./build/job_client 101 2 4096
-./build/job_client -1 2 4096
-./build/job_client 103 0 4096
-./build/job_client 103 abc 4096
-```
-
-重复 ID 返回 `Submit failed: JOB_REJECTED`，后三条非法参数请求返回 `Submit failed: INVALID_MESSAGE`；等待任务数仍为 2，运行任务数仍为 0。注册和提交失败都不会终止服务端。
-
-### 运行网络调度与模拟完成闭环
-
-启动一个全新的服务端，在另一个终端依次执行：
-
-```bash
-./build/worker_client 1 2 4096
 ./build/job_client 101 2 4096
 ./build/job_client 102 1 1024
+```
 
+Job 参数依次为 ID、CPU 核数、内存 MB。成功时 Job 客户端打印 `Submit success` 并退出，表示任务已入队。无需运行 `scheduler_client next` 或手动完成，Worker 随后输出：
+
+```text
+Worker 1 started Job 101 (CPU=2, memoryMB=4096)
+Worker 1 finished Job 101
+Job 101 completion accepted
+Worker 1 started Job 102 (CPU=1, memoryMB=1024)
+Worker 1 finished Job 102
+Job 102 completion accepted
+No Job available; retrying in 1s
+```
+
+任务执行用 500 ms 休眠模拟，所声明的 CPU 和内存只用于调度记账，不会实际占用相应资源。服务端处理完成上报后，最终恢复到：
+
+```text
+State: workers=1, waiting=0, running=0
+Worker 1: available CPU=2, memoryMB=4096
+```
+
+领取响应接收后连接就关闭，休眠和执行均发生在 Worker 本地，因此服务端可以继续接收其他请求。可在第四个终端启动 `./build/worker_client 2 2 4096` 验证两个 Worker；FirstFit 按注册顺序选节点，不保证任务平均分配。每个 Worker 进程一次只执行一个任务，调度器仍按声明的资源管理容量。
+
+实验结束时，对 Worker 和服务端分别按 `Ctrl+C`。Worker 退出不会注销，服务端重启后状态清空；同一服务端实例内重复启动同一 Worker ID 会注册失败。
+
+### 验证输入与错误处理
+
+保持上面的服务端运行，在其他终端执行：
+
+```bash
+./build/worker_client -1 4 8192    # Registration failed: INVALID_MESSAGE
+./build/worker_client 1 4 8192     # Registration failed: WORKER_REJECTED
+./build/job_client 101 2 4096     # Submit failed: JOB_REJECTED（已完成 ID 仍保留）
+./build/job_client -1 2 4096      # Submit failed: INVALID_MESSAGE
+./build/job_client 103 0 4096     # Submit failed: INVALID_MESSAGE
+./build/job_client 103 abc 4096   # Submit failed: INVALID_MESSAGE
+```
+
+非法请求不修改队列或资源，客户端以非零状态退出，服务端继续服务。没有 Worker 时，合法 Job 也能入队；Job ID 与 Worker ID 可相同，两者独立去重。
+
+### 手动调度与完成实验
+
+仍保留 `scheduler_client next` 和 `scheduler_client complete <jobId>`。为了观察固定的手动状态转换，先启动全新的服务端，再运行 `./build/worker_client 1 2 4096`；看到注册成功后，在 Worker 终端按 `Ctrl+C`，使其停止轮询。此时服务端仍保留 Worker 资源记录。然后依次执行：
+
+```bash
+./build/job_client 101 2 4096
+./build/job_client 102 1 1024
 ./build/scheduler_client next
 ./build/scheduler_client next
 ./build/scheduler_client complete 101
@@ -276,8 +268,6 @@ State: workers=1, waiting=2, running=0
 ./build/scheduler_client complete 102
 ./build/scheduler_client next
 ```
-
-控制客户端支持 `next` 和 `complete <jobId>`。`complete` 只检查参数数量，Job ID 文本交给服务端校验。每次请求后连接关闭。
 
 | 操作 | 响应 | 等待 / 运行 | Worker 可用 CPU / 内存 MB |
 |---|---|---|---|
@@ -290,20 +280,17 @@ State: workers=1, waiting=2, running=0
 | 完成 102 | `COMPLETE_OK` | 0 / 0 | 2 / 4096 |
 | 最后 `next` | `SCHEDULE_NONE` | 0 / 0 | 2 / 4096 |
 
-分配成功时客户端打印 `Scheduled Job 101 on Worker 1`，没有调度结果时打印 `No schedulable Job` 并正常退出；完成成功时打印 `Job completion accepted`。服务端返回错误时，客户端打印 `Scheduling failed: <错误码>` 或 `Completion failed: <错误码>`，并以非零状态退出。
-
-`complete 102` 在 Job 102 尚未调度时会被拒绝；`complete -1`、`complete abc` 或超出 `int` 范围的 ID 返回 `INVALID_MESSAGE`。重复完成不会再次增加资源，已完成的 Job ID 仍不能重新提交。完成后不会自动调度下一项，需再次执行 `next`。
-
-本演示的“运行”表示 Scheduler 中存在资源分配记录，完成由控制客户端手动模拟，不证明远程 Worker 实际执行了任务。
+手动分配的任务也会进入待派发队列；在领取前手动完成会清理该派发记录。运行中的 Worker 会自动领取和完成，混用手动控制时，观察到的状态取决于请求顺序。完成未知、等待中或已完成的 Job 均被拒绝；重复完成不会增加资源。完成本身不自动调度下一项，后续 Worker 轮询或 `next` 才触发调度。
 
 ## TCP 消息协议
 
-Worker 和 Job 客户端将三个参数用空格拼接，控制客户端发送调度或完成请求：
+Worker 和 Job 注册/提交时将三个参数用空格拼接；Worker 还发送领取和完成请求，控制客户端保留手动调度与完成：
 
 ```text
 REGISTER_WORKER <workerId> <cpuCores> <memoryMB>\n
 SUBMIT_JOB <jobId> <cpuCores> <memoryMB>\n
 SCHEDULE_NEXT\n
+FETCH_JOB <workerId>\n
 COMPLETE_JOB <jobId>\n
 ```
 
@@ -318,8 +305,8 @@ COMPLETE_JOB <jobId>\n
 | Job ID | 非负 `int`，允许 `0` |
 | CPU 核数 | 正 `int` |
 | 内存容量 | 正 `int`，单位为 MB |
-| 命令名 | `REGISTER_WORKER`、`SUBMIT_JOB`、`SCHEDULE_NEXT`、`COMPLETE_JOB`，区分大小写，精确匹配 |
-| 控制请求参数 | `SCHEDULE_NEXT` 无参数；`COMPLETE_JOB` 恰好一个非负整数 ID，拒绝额外内容 |
+| 命令名 | `REGISTER_WORKER`、`SUBMIT_JOB`、`SCHEDULE_NEXT`、`FETCH_JOB`、`COMPLETE_JOB`，区分大小写，精确匹配 |
+| 控制请求参数 | `SCHEDULE_NEXT` 无参数；`COMPLETE_JOB` / `FETCH_JOB` 恰好一个非负整数 ID，拒绝额外内容 |
 | 非法输入 | 拒绝缺失字段、非整数、整数溢出、非法资源和额外非空白内容 |
 | 重复 ID | 同一个 Scheduler 实例内分别拒绝重复 Worker ID 和 Job ID；两种 ID 相互独立 |
 
@@ -333,7 +320,7 @@ REGISTER_WORKER 1+8 16384
 
 Job 解析器同样允许 `SUBMIT_JOB 101+2+4096`，解析结果为 Job ID `101`、CPU `2`、内存 `4096 MB`。这里的正号属于整数的符号，不执行加法运算。两个客户端使用空格分隔三个命令行参数。
 
-完成解析器允许 `COMPLETE_JOB +101` 和多余空白，但只接受一个完整整数，`COMPLETE_JOB 101+102` 会被拒绝。
+完成解析器允许 `COMPLETE_JOB +101` 和多余空白，但只接受一个完整整数，`COMPLETE_JOB 101+102` 会被拒绝。`FETCH_JOB` 的 ID 采用相同规则，例如接受 `FETCH_JOB +1`，拒绝 `FETCH_JOB 1+2`。
 
 服务端响应同样以换行符结束：
 
@@ -348,12 +335,16 @@ Job 解析器同样允许 `SUBMIT_JOB 101+2+4096`，解析结果为 Job ID `101`
 | `SCHEDULE_OK <jobId> <workerId>\n` | 调度成功，资源已分配，Job 已进入运行记录 |
 | `SCHEDULE_NONE\n` | 队列为空、没有 Worker 或队首无法放置，本次没有调度结果 |
 | `SCHEDULE_ERROR INVALID_MESSAGE\n` | 调度请求携带了额外参数 |
+| `RUN_JOB <jobId> <cpuCores> <memoryMB>\n` | 已领取分配给该 Worker 的任务，资源之前已预留 |
+| `NO_JOB\n` | 当前 Worker 暂无任务，不表示全局队列为空 |
+| `FETCH_ERROR INVALID_MESSAGE\n` | 领取请求缺少 ID、ID 非法或含额外字段 |
+| `FETCH_ERROR UNKNOWN_WORKER\n` | Worker 尚未注册，不触发调度 |
 | `COMPLETE_OK\n` | 完成处理成功，资源已释放且运行记录已删除 |
 | `COMPLETE_ERROR INVALID_MESSAGE\n` | 完成请求缺少 ID、ID 非法或含额外字段 |
 | `COMPLETE_ERROR COMPLETION_REJECTED\n` | `completeJob()` 返回 false，例如 Job 未运行、已完成或释放失败 |
 | `REQUEST_ERROR UNKNOWN_COMMAND\n` | 命令未被识别，例如 `SUBMIT_JOB_EXTRA` 或空行 |
 
-`INVALID_MESSAGE` 目前不进一步区分非整数、负 ID 或非正资源。Worker 客户端识别 `REGISTER_OK` 和 `REGISTER_ERROR ` 前缀，Job 客户端识别 `SUBMIT_OK` 和 `SUBMIT_ERROR ` 前缀；其他响应分别报告 `Unexpected registration response` 或 `Unexpected submit response`，并以非零状态退出。
+`INVALID_MESSAGE` 目前不进一步区分非整数、负 ID 或非正资源。Worker 客户端按当前操作校验注册、领取和完成响应；`RUN_JOB` 必须恰好包含三个空白分隔的完整整数字段，ID 非负且资源为正，拒绝溢出、数字后缀和额外内容。仅精确的 `NO_JOB` 触发 1 秒后的下次轮询。错误响应、畸形响应或网络失败均使 Worker 以非零状态退出；完成确认必须为精确的 `COMPLETE_OK`。Job 客户端识别 `SUBMIT_OK` 和 `SUBMIT_ERROR ` 前缀，其他响应报错退出。
 
 控制客户端按发出的操作识别响应。`next` 只接受合法 `SCHEDULE_OK`、精确的 `SCHEDULE_NONE` 或 `SCHEDULE_ERROR <错误码>`；`complete` 只接受精确的 `COMPLETE_OK` 或 `COMPLETE_ERROR <错误码>`。调度结果必须恰好包含两个空白分隔的完整非负整数字段，拒绝溢出、数字后缀、缺失或额外字段。错误响应必须恰好包含一个错误码；跨操作的响应也会被拒绝。
 
@@ -361,7 +352,7 @@ Job 解析器同样允许 `SUBMIT_JOB 101+2+4096`，解析结果为 Job ID `101`
 
 服务端在 `accept()` 成功后，对当前客户端 socket 设置 `SO_RCVTIMEO` 为 5 秒。接收调用等待期间没有数据可读并达到超时后，服务端报告 `Receive timed out`，关闭当前连接，不发送业务结果，然后继续接受连接。该配置限制单次 `recv()` 的阻塞时间，不是整条请求消息的总耗时限制；客户端持续缓慢发送字节时，整条消息仍可能耗时超过 5 秒。三个客户端等待响应时尚未设置接收超时。
 
-状态修改先于响应发送。发送失败不会回滚注册、入队、分配或资源释放，也未缓存请求结果；调用方不能仅凭未收到响应判断操作是否发生。例如自动重试 `SCHEDULE_NEXT` 可能分配另一个 Job。当前演示不自动重试这些请求。
+状态修改先于响应发送。发送失败不会回滚注册、入队、分配或资源释放，也未缓存请求结果；调用方不能仅凭未收到响应判断操作是否发生。例如自动重试 `SCHEDULE_NEXT` 可能分配另一个 Job；`FETCH_JOB` 的响应丢失后，该任务的派发记录已移除，运行记录及资源预留仍保留。当前 Worker 只在明确收到 `NO_JOB` 时继续轮询，通信失败不自动重试。Worker 执行中崩溃也没有恢复机制。完成消息目前只携带 Job ID，不校验上报者身份，适用于本机受信任的学习演示。
 
 ## 运行测试
 
@@ -369,10 +360,11 @@ Job 解析器同样允许 `SUBMIT_JOB 101+2+4096`，解析结果为 Job ID `101`
 ctest --test-dir build --output-on-failure
 ```
 
-CTest 包含六个测试程序，也可以分别运行：
+CTest 包含七个测试程序，也可以分别运行：
 
 ```bash
 ./build/scheduler_tests
+./build/job_dispatch_tests
 ./build/registration_tests
 ./build/tcp_io_tests
 ./build/job_submission_tests
@@ -389,6 +381,8 @@ CTest 包含六个测试程序，也可以分别运行：
 - Job 和 Worker 输入校验、重复 Worker ID 拒绝及两种 ID 的独立命名空间
 - 多线程并发完成 Job
 - 资源分配和释放后的 Worker 快照
+
+`job_dispatch_tests` 覆盖 Worker 领取闭环、未知 Worker 不触发调度、领取不重复分配资源、同一任务不重复领取、只调度队首一次、跨 Worker 派发、优先领取已有任务、严格 FIFO、三种策略复用、手动完成未领取任务的清理，以及并发领取不重复交付。该程序设置 10 秒 CTest 上限，以捕捉嵌套加锁造成的死锁。
 
 `registration_tests` 覆盖：
 
@@ -420,9 +414,9 @@ CTest 包含六个测试程序，也可以分别运行：
 
 `job_completion_tests` 覆盖正常完成消息、0 和 `int` 最大值、正号与空白，以及错误命令、缺失或额外字段、负 ID、非整数、数字后缀和溢出。
 
-`scheduler_protocol_tests` 直接调用服务端使用的 `processSchedulerRequest()`，覆盖四类命令分流、无 Worker/空队列/容量不足、严格 FIFO、提交→调度→完成→资源恢复的状态转换、重复完成、完成等待中或未知 Job，以及非法请求不修改状态。另覆盖客户端使用的调度结果解析函数，包括合法边界和畸形响应。
+`scheduler_protocol_tests` 直接调用服务端使用的 `processSchedulerRequest()`，覆盖五类命令分流、无 Worker/空队列/容量不足、严格 FIFO、提交→调度→完成→资源恢复的状态转换、重复完成、完成等待中或未知 Job，以及非法请求不修改状态。另覆盖领取→完成闭环、领取请求校验、未知 Worker 与客户端使用的调度结果和 `RUN_JOB` 解析函数，包括合法边界和畸形响应。
 
-当前 CTest 自动验证调度核心、协议解析与请求分流、状态转换和字节流收发，不启动 TCP 服务端与客户端，也不验证 TCP 连接建立、服务端 5 秒超时配置或控制客户端进程的全部响应分支。这些流程可按上述步骤手动验证；发送函数的部分发送和 `EINTR` 重试分支尚未由测试专门触发。
+当前 CTest 自动验证调度核心、协议解析与请求分流、状态转换和字节流收发，不启动 TCP 服务端与客户端，也不验证 TCP 连接建立、服务端 5 秒超时配置或客户端进程的全部响应分支。这些流程可按上述步骤手动验证；发送函数的部分发送和 `EINTR` 重试分支尚未由测试专门触发。
 
 ## Benchmark
 
@@ -434,7 +428,7 @@ CTest 包含六个测试程序，也可以分别运行：
 
 Benchmark 测量单进程调度性能，不包含 TCP 通信。它使用固定随机种子生成 100 个 Job，并让三种策略处理完全相同的输入。每种策略重复运行 10,000 次，每次都创建全新的 Scheduler 和 Worker。
 
-计时只覆盖 `scheduleNext()` 调用，不包含 Scheduler 创建、Job 提交、快照复制、指标计算或输出。报告的时间是每次调度尝试的平均纳秒耗时；一次实验的尝试次数包含成功调度调用以及最后一次用于结束 FIFO 循环的失败调用。
+计时只覆盖 `scheduleNext()` 调用（包括待派发 ID 入队），不包含 Scheduler 创建、Job 提交、快照复制、指标计算或输出。报告的时间是每次调度尝试的平均纳秒耗时；一次实验的尝试次数包含成功调度调用以及最后一次用于结束 FIFO 循环的失败调用。
 
 该实验模拟批量放置，因此成功调度的 Job 不会立即释放资源。它衡量：
 
@@ -467,13 +461,14 @@ LeastAllocated    9              91             78.57          64.05            
 - TCP 服务端串行处理连接，同一时刻只处理一个客户端的一条请求消息
 - 单次接收等待最多约 5 秒，尚无整个请求的截止时间；持续缓慢发送字节的客户端仍可能长时间阻塞后续处理
 - Worker 状态、等待 Job 与运行记录仅保存在内存中，服务端退出后消失
-- 客户端退出不会注销 Worker，已登记的资源只是状态记录，尚未用于远程任务执行
+- Worker 退出不会注销；待派发任务和运行记录可能长期保留，资源不会自动回收
 - 地址和端口固定在代码中，客户端 Worker/Job ID 和资源信息通过命令行传入
-- 网络 Job 需手动触发调度和模拟完成；尚未实现 Worker 任务分发、实际执行和执行结果回报
+- 网络 Job 通过 Worker 轮询触发调度；空闲轮询间隔为 1 秒，领取时机还受调度策略、执行和资源状态影响，尚无服务端主动推送
 - 状态修改与响应发送不是原子操作，尚无请求结果缓存或自动恢复机制
 - Scheduler 使用一把粗粒度 mutex，尚未研究锁竞争
 - Job 只是模拟的资源请求，不执行真实工作负载
-- 没有长期运行的 Worker 线程或自动调度循环
+- Worker 进程串行模拟执行，尚无本地并行执行器；调度器的 running 计数包含已预留但未领取的任务
+- 完成上报只包含 Job ID，没有身份认证、Worker 归属校验和执行结果数据
 - 没有持久化和已完成 Job 历史
 - 没有心跳、故障检测和 Job 重试
 - 没有 GPU、GPU 显存或 NPU 资源模型
@@ -483,7 +478,7 @@ LeastAllocated    9              91             78.57          64.05            
 
 - 完善注册失败原因反馈和可配置的连接地址
 - 扩展多个 Worker 的并发连接管理与连接生命周期处理
-- 实现网络 Job 分发和任务执行结果回报
+- 接入真实任务执行与执行结果数据
 - 添加 Worker 心跳与故障检测
 - 添加 Job 失败重试和重新调度
 - 扩展 GPU、GPU 显存和 NPU 资源约束

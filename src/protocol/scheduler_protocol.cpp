@@ -63,6 +63,28 @@ std::string processSchedulerRequest(const std::string& line, Scheduler& schedule
                std::to_string(result->workerId) + "\n";
     }
 
+    if (command == "FETCH_JOB") {
+        int workerId = 0;
+        std::string extra;
+        if (!(input >> workerId) || workerId < 0 || (input >> extra)) {
+            return "FETCH_ERROR INVALID_MESSAGE\n";
+        }
+
+        const auto result = scheduler.fetchJob(workerId);
+        switch (result.status) {
+            case FetchStatus::UnknownWorker:
+                return "FETCH_ERROR UNKNOWN_WORKER\n";
+            case FetchStatus::NoJob:
+                return "NO_JOB\n";
+            case FetchStatus::Assigned: {
+                const Job& job = result.job.value();
+                return "RUN_JOB " + std::to_string(job.jobId) + " " +
+                       std::to_string(job.requiredResource.cpuCores) + " " +
+                       std::to_string(job.requiredResource.memoryMB) + "\n";
+            }
+        }
+    }
+
     if (command == "COMPLETE_JOB") {
         const auto jobId = parseJobCompletion(line);
         if (!jobId) {
@@ -94,4 +116,25 @@ std::optional<ScheduleResult> parseScheduleResult(const std::string& line) {
         return std::nullopt;
     }
     return ScheduleResult{*jobId, *workerId};
+}
+
+std::optional<Job> parseRunJob(const std::string& line) {
+    std::istringstream input(line);
+    std::string command;
+    std::string jobField;
+    std::string cpuField;
+    std::string memoryField;
+    std::string extra;
+    if (!(input >> command >> jobField >> cpuField >> memoryField) ||
+        command != "RUN_JOB" || (input >> extra)) {
+        return std::nullopt;
+    }
+
+    const auto jobId = parseNonNegativeField(jobField);
+    const auto cpu = parseNonNegativeField(cpuField);
+    const auto memory = parseNonNegativeField(memoryField);
+    if (!jobId || !cpu || !memory || *cpu == 0 || *memory == 0) {
+        return std::nullopt;
+    }
+    return Job{*jobId, {*cpu, *memory}};
 }
