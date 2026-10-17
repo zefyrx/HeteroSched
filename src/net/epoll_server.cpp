@@ -32,6 +32,10 @@ EpollServer::EpollServer(std::uint16_t port, RequestHandler handler)
     if (epoll_.get() < 0) fail("epoll_create1");
     if (!handler_) throw std::invalid_argument("request handler is required");
 
+    const int reuseAddress = 1;
+    if (setsockopt(listener_.get(), SOL_SOCKET, SO_REUSEADDR, &reuseAddress, sizeof(reuseAddress)) < 0)
+        fail("setsockopt SO_REUSEADDR");
+
     sockaddr_in address{};
     address.sin_family = AF_INET;
     address.sin_addr.s_addr = htonl(INADDR_LOOPBACK);

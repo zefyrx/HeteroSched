@@ -16,6 +16,13 @@ import threading
 import time
 
 
+class RequestFailure(Exception):
+    def __init__(self, phase, cause, elapsed_ns):
+        super().__init__(f"{phase}: {type(cause).__name__}: {cause}")
+        self.phase = phase
+        self.elapsed_ns = elapsed_ns
+
+
 def request_once(host, port, timeout):
     """返回从开始连接到收到完整响应的耗时，单位为纳秒；失败时抛出异常。"""
     expected = b"SCHEDULE_NONE\n"
@@ -23,27 +30,31 @@ def request_once(host, port, timeout):
     # 1. 用 time.perf_counter_ns() 记录开始时间
     start = time.perf_counter_ns()
 
-    # 2. 建立 TCP 连接并设置超时
-    with socket.create_connection((host, port), timeout=timeout) as sock:
-        # 3. 使用 sendall() 发送 SCHEDULE_NEXT\n
-        sock.sendall(b"SCHEDULE_NEXT\n")
+    phase = "connect"
+    try:
+        # 2. 建立 TCP 连接并设置超时
+        with socket.create_connection((host, port), timeout=timeout) as sock:
+            phase = "send"
+            sock.sendall(b"SCHEDULE_NEXT\n")
 
-        # 4. TCP 可能分多次返回响应，因此持续读取到换行。
-        response = b""
-        while b"\n" not in response:
-            chunk = sock.recv(4096)
-            if not chunk:
-                raise ConnectionError("connection closed before newline")
-            response += chunk
-            # 本场景响应固定，及时拒绝超长响应，避免持续累积数据。
-            if len(response) > len(expected):
+            # 3. TCP 可能分多次返回响应，持续读取到换行。
+            phase = "receive"
+            response = b""
+            while b"\n" not in response:
+                chunk = sock.recv(4096)
+                if not chunk:
+                    raise ConnectionError("connection closed before newline")
+                response += chunk
+                if len(response) > len(expected):
+                    phase = "validate"
+                    raise ValueError(f"Unexpected response: {response!r}")
+
+            elapsed_ns = time.perf_counter_ns() - start
+            phase = "validate"
+            if response != expected:
                 raise ValueError(f"Unexpected response: {response!r}")
-
-        elapsed_ns = time.perf_counter_ns() - start
-
-        # 5. 校验空任务队列场景下的预期响应。
-        if response != expected:
-            raise ValueError(f"Unexpected response: {response!r}")
+    except (OSError, ValueError) as error:
+        raise RequestFailure(phase, error, time.perf_counter_ns() - start) from error
 
     # 6. with 在正常返回和异常时都会关闭 socket。
     return elapsed_ns
@@ -81,7 +92,7 @@ def run_benchmark(host, port, timeout, requests, warmup, concurrency=1, server_p
     for index in range(warmup):
         try:
             request_once(host, port, timeout)
-        except (OSError, ValueError) as error:
+        except RequestFailure as error:
             raise RuntimeError(f"Warm-up failed at request {index + 1}/{warmup}: {error}") from error
 
     timing = {}
@@ -98,20 +109,24 @@ def run_benchmark(host, port, timeout, requests, warmup, concurrency=1, server_p
         failures = []
         ready.wait()
         for _ in range(count):
-            attempt_start = time.perf_counter_ns()
             try:
                 latencies.append(request_once(host, port, timeout))
-            except (OSError, ValueError) as error:
-                failures.append({"elapsed_ns": time.perf_counter_ns() - attempt_start,
-                                 "error": f"{type(error).__name__}: {error}"})
+            except RequestFailure as error:
+                failures.append({"elapsed_ns": error.elapsed_ns,
+                                 "phase": error.phase, "error": str(error)})
         return latencies, failures
 
     with ThreadPoolExecutor(max_workers=concurrency) as pool:
         per_client, extra = divmod(requests, concurrency)
-        futures = [pool.submit(client, per_client + (index < extra))
-                   for index in range(concurrency)]
-        ready.wait()
-        results = [future.result() for future in futures]
+        try:
+            futures = [pool.submit(client, per_client + (index < extra))
+                       for index in range(concurrency)]
+            ready.wait()
+            results = [future.result() for future in futures]
+        except BaseException:
+            # 线程创建失败或中断时释放已在 barrier 等待的客户端。
+            ready.abort()
+            raise
         elapsed_ns = time.perf_counter_ns() - timing["start_ns"]
         after = server_snapshot(server_pid)
 

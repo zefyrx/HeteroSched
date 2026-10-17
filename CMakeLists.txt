@@ -83,6 +83,10 @@ if(Python3_Interpreter_FOUND)
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/net/epoll_server_integration_test.py
                 $<TARGET_FILE:scheduler_server_epoll>)
     set_tests_properties(epoll_server_integration_tests PROPERTIES TIMEOUT 30)
+    add_test(NAME tcp_comparison_tests
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/net/tcp_comparison_test.py
+                $<TARGET_FILE_DIR:scheduler_server>)
+    set_tests_properties(tcp_comparison_tests PROPERTIES TIMEOUT 30)
 endif()
 
 add_executable(registration_tests tests/protocol/registration_test.cpp)

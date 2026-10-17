@@ -7,8 +7,8 @@
 
 inline constexpr std::size_t kMaxMessageLength = 128;
 
-bool sendAll(int fd, const std::string& message);
+bool sendAll(int fd, const std::string& message, bool logErrors = true);
 
-std::optional<std::string> receiveLine(int fd);
+std::optional<std::string> receiveLine(int fd, bool logErrors = true);
 
 #endif

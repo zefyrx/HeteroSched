@@ -5,7 +5,7 @@
 
 #include "net/tcp_io.h"
 
-bool sendAll(int fd, const std::string& message) {
+bool sendAll(int fd, const std::string& message, bool logErrors) {
     std::size_t sentBytes = 0;
 
     while (sentBytes < message.size()) {
@@ -23,13 +23,13 @@ bool sendAll(int fd, const std::string& message) {
                 continue;
             }
 
-            perror("send failed");
+            if (logErrors) perror("send failed");
             return false;
         }
 
         // count == 0：打印无法继续发送的错误，返回 false。
         if (count == 0) {
-            std::cerr << "unable to continue send" << std::endl;
+            if (logErrors) std::cerr << "unable to continue send" << std::endl;
             return false;
         }
 
@@ -42,7 +42,7 @@ bool sendAll(int fd, const std::string& message) {
     return true;
 }
 
-std::optional<std::string> receiveLine(int fd) {
+std::optional<std::string> receiveLine(int fd, bool logErrors) {
     char ch;
     std::string line;
 
@@ -58,16 +58,16 @@ std::optional<std::string> receiveLine(int fd) {
             // 判断是不是由于接收超时或非阻塞 Socket 暂时没有数据
             // 而不是其他网络错误。
             if (errno == EAGAIN || errno == EWOULDBLOCK) {
-                std::cerr << "Receive timed out" << std::endl;
+                if (logErrors) std::cerr << "Receive timed out" << std::endl;
                 return std::nullopt;
             }
             
-            perror("recv failed");
+            if (logErrors) perror("recv failed");
             return std::nullopt;
         }
 
         if (count == 0) {
-            std::cerr << "Incomplete message" << std::endl;
+            if (logErrors) std::cerr << "Incomplete message" << std::endl;
             return std::nullopt;
         }
 
@@ -76,7 +76,7 @@ std::optional<std::string> receiveLine(int fd) {
         }
 
         if (line.size() == kMaxMessageLength) {
-            std::cerr << "message too long" << std::endl;
+            if (logErrors) std::cerr << "message too long" << std::endl;
             return std::nullopt;
         }
 

@@ -39,7 +39,7 @@ class Peer:
 
 class EpollIntegrationTests(unittest.TestCase):
     def setUp(self):
-        self.server = subprocess.Popen([SERVER_BINARY, "--port", "0"],
+        self.server = subprocess.Popen([SERVER_BINARY, "--port", "0", "--quiet"],
                                        stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                        text=True)
         self.addCleanup(self.stop_server)

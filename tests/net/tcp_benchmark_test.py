@@ -104,7 +104,8 @@ class BenchmarkTests(unittest.TestCase):
 
         with TcpFixture(1, split) as server:
             self.assertEqual(self.run_workload(server, 1)["completed"], 1)
-        for payload in (b"BAD\n", b"SCHEDULE_", b"x" * 100):
+        for payload, phase in ((b"BAD\n", "validate"),
+                               (b"SCHEDULE_", "receive"), (b"x" * 100, "validate")):
             with self.subTest(payload=payload):
                 with TcpFixture(1, lambda connection: connection.sendall(payload)) as server:
                     run = self.run_workload(server, 1)
@@ -112,6 +113,7 @@ class BenchmarkTests(unittest.TestCase):
                 self.assertEqual(len(run["failures"]), 1)
                 self.assertIsNone(run["p95_ms"])
                 self.assertGreater(run["failures"][0]["elapsed_ns"], 0)
+                self.assertEqual(run["failures"][0]["phase"], phase)
 
     def test_timeout_is_counted(self):
         with TcpFixture(1) as server:
@@ -119,6 +121,14 @@ class BenchmarkTests(unittest.TestCase):
             run = self.run_workload(server, 1, timeout=0.05)
         self.assertEqual(run["failed"], 1)
         self.assertIn("TimeoutError", run["failures"][0]["error"])
+        self.assertEqual(run["failures"][0]["phase"], "receive")
+
+    def test_refused_connection_is_classified(self):
+        with socket.socket() as reserved:
+            reserved.bind(("127.0.0.1", 0))
+            run = benchmark.run_benchmark("127.0.0.1", reserved.getsockname()[1], 1, 1, 0)
+        self.assertEqual(run["failed"], 1)
+        self.assertEqual(run["failures"][0]["phase"], "connect")
 
     def test_mixed_success_and_failure_are_all_counted(self):
         sequence = iter([OK, b"BAD\n", OK, b"SCHEDULE_"])

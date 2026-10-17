@@ -4,7 +4,7 @@ HeteroSched 是一个使用 C++17 逐步构建的轻量级资源调度器学习�
 
 当前进度：Phase 1 单进程调度已完成；Phase 2 已实现 Worker 自动领取、模拟执行、完成上报的网络闭环，并保留手动调度与完成接口。提交成功表示入队，调度成功表示资源已预留，领取成功表示派发记录已消费，完成成功表示资源已释放。目前执行使用 500 ms 的休眠模拟，真实工作负载、心跳、故障恢复和 GPU 调度属于后续计划。
 
-epoll 第一版已通过连接生命周期、并发请求和缓冲区测试；阻塞版网络压测基线已保存。两版请求日志方式尚未统一，正式性能对比仍待完成，当前不宣称 epoll 的性能提升。
+epoll 第一版已通过连接生命周期、并发请求和缓冲区测试；历史阻塞版网络压测基线已保存。两版现在共享请求日志格式和 `--quiet` 模式，可通过一键对比工具在相同条件下重测，结果和限制见 Benchmark 部分。
 
 ## 目录结构
 
@@ -114,7 +114,7 @@ runningJobs_（已交付，等待完成）
 
 ### LT epoll TCP 请求处理
 
-`scheduler_server_epoll` 使用同一份 `Scheduler` 和 `processSchedulerRequest()`，通过 `EpollServer` 管理网络。监听 socket 与 `accept4()` 得到的客户端 socket 均设置 `SOCK_NONBLOCK | SOCK_CLOEXEC`，`epoll_create1()` 创建事件实例，监听队列 backlog 暂时保持为 1。网络事件循环单线程运行；业务状态继续通过原有 Scheduler API 访问。
+`scheduler_server_epoll` 使用同一份 `Scheduler` 和 `processSchedulerRequest()`，通过 `EpollServer` 管理网络。监听 socket 与 `accept4()` 得到的客户端 socket 均设置 `SOCK_NONBLOCK | SOCK_CLOEXEC`，`epoll_create1()` 创建事件实例，监听队列 backlog 暂时保持为 1。两版都在 bind 前设置 `SO_REUSEADDR`，便于在同一端口依次重启实验进程。网络事件循环单线程运行；业务状态继续通过原有 Scheduler API 访问。
 
 每个连接保存以下状态：
 
@@ -280,7 +280,7 @@ Worker 1: available CPU=2, memoryMB=4096
 ./build/scheduler_server_epoll
 ```
 
-默认同样监听 `127.0.0.1:9000`，可按上面的步骤使用原 Worker、Job 和控制客户端。两种服务端是独立进程，各自拥有内存状态；切换后需要重新注册 Worker、提交 Job。新入口只打印启动地址和致命错误，没有逐请求状态日志。
+默认同样监听 `127.0.0.1:9000`，可按上面的步骤使用原 Worker、Job 和控制客户端。两种服务端是独立进程，各自拥有内存状态；切换后需要重新注册 Worker、提交 Job。两版默认都输出请求、响应和调度状态，使用 `--quiet` 关闭逐请求日志及普通客户端收发错误日志，仅保留启动地址和致命/配置错误；建议 epoll 服务端在压测时使用 quiet 模式，避免同步日志写入占用事件循环。
 
 如果 9000 端口正在使用，可单独启动一个空状态的测试实例：
 
@@ -288,7 +288,7 @@ Worker 1: available CPU=2, memoryMB=4096
 ./build/scheduler_server_epoll --port 19000
 ```
 
-benchmark 支持 `--port 19000`；原有三个 C++ 客户端的端口仍固定为 9000。`--port 0` 可由系统分配空闲端口，实际地址会打印到启动日志，自动化测试使用此方式避免端口冲突。服务端均仅绑定 loopback。
+两种服务端现在均支持 `--port` 和 `--quiet`，例如 `./build/scheduler_server --port 19000 --quiet`。benchmark 支持 `--port 19000`；原有三个 C++ 客户端的端口仍固定为 9000。`--port 0` 可由系统分配空闲端口，实际地址会打印到启动日志，自动化测试使用此方式避免端口冲突。服务端均仅绑定 loopback。
 
 ### 验证输入与错误处理
 
@@ -412,7 +412,7 @@ Job 解析器同样允许 `SUBMIT_JOB 101+2+4096`，解析结果为 Job ID `101`
 ctest --test-dir build --output-on-failure
 ```
 
-安装 Python 3 时，CTest 包含十个测试程序；没有 Python 时，八个 C++ 测试及应用仍可正常构建。可以分别运行：
+安装 Python 3 时，CTest 包含十一个测试程序；没有 Python 时，八个 C++ 测试及应用仍可正常构建。可以分别运行：
 
 ```bash
 ./build/scheduler_tests
@@ -425,6 +425,7 @@ ctest --test-dir build --output-on-failure
 ./build/scheduler_protocol_tests
 python3 tests/net/tcp_benchmark_test.py
 python3 tests/net/epoll_server_integration_test.py ./build/scheduler_server_epoll
+python3 tests/net/tcp_comparison_test.py ./build
 ```
 
 `scheduler_tests` 覆盖：
@@ -477,6 +478,8 @@ python3 tests/net/epoll_server_integration_test.py ./build/scheduler_server_epol
 
 `epoll_server_io_tests` 向通用事件循环注入 8 MiB 响应，验证跨事件的发送偏移、输出积压后的继续解析、响应顺序、半关闭后完整响应、慢读者不阻塞其他连接，以及输出仍待发送时客户端 reset 后继续服务。实际 Scheduler 协议响应较短，大响应只用于覆盖网络层的发送路径。
 
+`tcp_comparison_tests` 验证两版 quiet/默认日志模式、参数校验、注册到完成的协议流程、同端口重启、每轮全新进程、交替运行顺序和原始结果保存。目标端口已被占用时，一键工具保存停止原因并退出；测试同时检查原有服务端仍可处理请求。`tcp_benchmark_tests` 还验证接收超时、连接拒绝和错误响应的失败阶段分类。
+
 当前 CTest 会启动 C++ epoll 服务端验证网络集成；阻塞版的 5 秒超时配置和原 C++ 客户端进程的全部响应分支仍需手动验证。阻塞式 `sendAll()` 的部分发送分支及系统调用 `EINTR` 分支尚未由测试专门触发。
 
 ## Benchmark
@@ -519,7 +522,7 @@ LeastAllocated    9              91             78.57          64.05            
 
 ### TCP 服务 benchmark
 
-`benchmarks/tcp_benchmark.py` 测量完整的短连接请求，与上面的调度函数 benchmark 分开。阻塞版基线已保存，epoll 第一版已通过正确性测试，正式性能对比仍需使用同一工具、请求数、超时、日志策略和构建模式重新测量。
+`benchmarks/tcp_benchmark.py` 测量完整的短连接请求，与上面的调度函数 benchmark 分开。单独测试时，先手动启动全新的服务端并添加 `--quiet`。两版自动对比使用下文的 `compare_tcp_servers.py`，它管理自己创建的服务端子进程并固定测量条件。
 
 使用没有 Worker/Job、且没有其他客户端访问的全新服务端。每个连接只发送 `SCHEDULE_NEXT\n`（14 字节），预期 `SCHEDULE_NONE\n`（14 字节）。错误响应、EOF、连接失败、超时均计为失败，不自动重试。该负载衡量空队列的网络服务路径，不代表任务执行或复杂调度性能。
 
@@ -528,7 +531,7 @@ python3 benchmarks/tcp_benchmark.py \
   --requests 1000 --warmup 10 --concurrency 1 10 50 100 \
   --repeat 3 --timeout 1 --label blocking \
   --server-binary build/scheduler_server \
-  --notes 'Release; fresh empty server; stdout/stderr redirected to a file' \
+  --notes 'Release; fresh empty server started with --quiet' \
   --output build/blocking-results.json
 ```
 
@@ -543,12 +546,12 @@ python3 benchmarks/tcp_benchmark.py \
 - 正式总耗时从 barrier 释放到全部请求结束，包含失败等待和客户端记账，不含预热、线程创建、指标汇总及输出。成功吞吐 = 成功数 / 正式总耗时。
 - P50/P95 只使用成功请求的延迟，按 nearest-rank 定义取排序后第 `ceil(p × N)` 个样本。必须同时阅读失败率；大量超时可以使成功请求的 P95 看起来仍很低。
 - 跨轮汇总逐项取中位数，不把所有轮的延迟混在一起。某轮无成功样本，则该并发数汇总的延迟显示 `null`，不会悄悄省略失败轮。
-- JSON 保留每轮成功耗时（ns）、每个失败请求的耗时及原因、吞吐和分位数、环境、源码提交、脚本/可选服务端二进制 SHA-256、命令和备注。任意正式请求失败时退出码为 1，结果仍会保存。
+- JSON 保留每轮成功耗时（ns）、每个失败请求的耗时及原因、吞吐和分位数、环境、源码提交、脚本/可选服务端二进制 SHA-256、命令和备注。新数据为失败请求增加 `phase`：`connect`（建立连接）、`send`（发送请求）、`receive`（等待/读取响应）、`validate`（响应不符合预期）。阶段分类基于客户端操作，不代表已经定位内核内部原因。任意正式请求失败时退出码为 1，结果仍会保存。
 - 可选 CPU 指标从 `/proc/<PID>/stat` 的 CPU 时间增量计算，100% 表示占满一个逻辑核，精度受内核时钟 tick 影响。`VmHWM` 是服务端进程生命周期的 RSS 峰值，不是本轮独立峰值；无法采样时明确记录 unavailable。客户端 CPU 和内存未测量。
 
 #### 重建已保存的阻塞基线
 
-阻塞版代码固定在提交 `2f30211b75f0fc65aa40ab7843957363f94877ef`。当前端口 9000 被占用，因此已保存测量只把该服务端副本的监听端口和启动日志改为 19000，原有服务端没有被停止或修改。以下命令在独立 worktree 中重建；端口变更不影响连接处理逻辑，未来比较时两版应使用相同端口和配置。
+历史阻塞版代码固定在提交 `2f30211b75f0fc65aa40ab7843957363f94877ef`。当时端口 9000 被占用，因此已保存测量只把该服务端副本的监听端口和启动日志改为 19000，原有服务端没有被停止或修改。以下命令在独立 worktree 中重建；端口变更不影响连接处理逻辑，未来比较时两版应使用相同端口和配置。
 
 ```bash
 git worktree add --detach build/blocking-source 2f30211b75f0fc65aa40ab7843957363f94877ef
@@ -598,7 +601,65 @@ python3 benchmarks/tcp_benchmark.py --port 19000 \
 
 高并发下失败增加且 CPU 较低，与连接排队/等待的现象一致。当前服务端串行处理请求且 `listen()` backlog 为 1，测试又使用短连接和 1 秒超时；尚未用控制变量实验或内核计数器区分这些因素的贡献，不能把吞吐下降全部归因于阻塞 I/O，也不能把这些结果当作服务端的最大处理能力。Python 线程、GIL、操作系统调度与 TCP 连接重传同样在端到端测量边界内。后续先保持 backlog 等条件一致比较 epoll，再单独研究 backlog 调优，避免把两种优化混为一个收益。
 
-当前没有条件统一后的 epoll 性能对比结果，不提供优化百分比。新入口没有逐请求日志，而阻塞基线输出逐请求状态；下一轮需要先统一日志条件、保持 backlog=1，再重跑两版，不能把日志差异计作 epoll 收益。空队列压测也不验证真实调度负载或 Worker 执行；慢客户端隔离和资源记账由上面的 epoll 集成测试独立验证。
+以上是旧版带请求日志的历史测量，不能直接与现在的 quiet 模式相减得出 epoll 收益。条件统一后的对比另存于下文，保留这份历史数据用于追溯。空队列压测不验证真实调度负载或 Worker 执行；慢客户端隔离和资源记账由上面的 epoll 集成测试独立验证。
+
+#### 一键比较两版服务端
+
+本轮假设：统一请求日志条件后，epoll 可以交错推进多个连接的 I/O；短连接吞吐仍可能受 backlog=1、连接建立及 Python 驱动影响。比较对象是当前两套服务端实现，包含逐字节/批量接收、accept 与事件管理、连接关闭方式等差异，不能把结果解释为仅仅一个 epoll 系统调用带来的收益。
+
+```bash
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build --parallel 2
+ctest --test-dir build --output-on-failure
+python3 benchmarks/compare_tcp_servers.py --build-dir build \
+  --requests 1000 --warmup 10 --concurrency 1 10 50 100 \
+  --repeat 3 --timeout 1 --output-dir build/quiet-comparison
+```
+
+工具要求 Release 构建，每版共 12 轮、24 轮合计 24,000 次正式请求。首次自动选择空闲端口，此后两版都重用该端口；也可用 `--port` 指定端口。每轮启动全新空状态服务端、先做串行预热，再调用同一个压测函数。第 1、3 次重复先 blocking 后 epoll，第 2 次反过来；测量时仅有一个目标服务端运行。两版均为 backlog=1、`SO_REUSEADDR`、`--quiet`，成功/失败请求期间均无请求日志；工具检查启动后 stdout 和 stderr 确实为空。测试窗口相邻且交替执行，但 3 次重复无法完全消除系统负载和顺序偏差。
+
+输出目录包含 `blocking.json`、`epoll.json` 和 `comparison.json`。前两份保存全部原始成功/失败样本和各轮 CPU/RSS，第三份记录配对顺序、端口、进程命令、源码/脚本/二进制哈希、CMake 构建选项和对比汇总。每轮都使用独立进程，因此内存指标是每轮进程从启动开始、包含预热的生命周期峰值；CPU 仍只覆盖正式测量采样窗口。stderr 日志位于 `build/tcp-comparison-logs/`。工具会停止自己启动的进程，即使请求失败也保存结果；存在请求失败时返回 1，启动或预热失败时另记录 `aborted`。
+
+本轮改动前提交为 `59cfcb5e30fd5991635f49db486b34c563903db2`。为统一条件，增加了共享端口/quiet 参数、共享默认请求日志和两版的地址复用配置；原阻塞 I/O、5 秒接收等待超时和 epoll 的事件处理预算保持原逻辑。新的分阶段失败记录应用于两版客户端测量，不与旧数据混用。
+
+#### quiet 模式下的前后对比结果
+
+原始数据保存于 [`benchmarks/results/quiet_comparison/`](benchmarks/results/quiet_comparison/)。实际执行上面的一键命令，仅将 `--output-dir` 改为该路径。机器仍为 AMD Ryzen 7 6800H、16 个逻辑 CPU、WSL2 / Linux 6.6.87.2、GCC 13.3.0，Release `-O3 -DNDEBUG`；首次分配并在全部 24 轮中复用端口 43699。构建和 11/11 CTest 通过后测量，两版所有轮次的 quiet 输出检查通过。后台系统负载没有隔离。
+
+下表的吞吐是三轮中位数；失败数是三轮合计，每个单元格分母均为 3000 次正式请求。
+
+| 并发客户端 | blocking 成功请求/秒 | epoll 成功请求/秒 | blocking 失败数 | epoll 失败数 |
+|---:|---:|---:|---:|---:|
+| 1 | 5093.66 | 4900.20 | 0 / 3000 | 0 / 3000 |
+| 10 | 243.70 | 2074.46 | 48 / 3000 | 0 / 3000 |
+| 50 | 74.60 | 772.02 | 779 / 3000 | 4 / 3000 |
+| 100 | 67.79 | 2109.42 | 1291 / 3000 | 1 / 3000 |
+
+成功请求的分位数也是逐轮计算后取三轮中位数，单位 ms：
+
+| 并发客户端 | blocking P50 | epoll P50 | blocking P95 | epoll P95 |
+|---:|---:|---:|---:|---:|
+| 1 | 0.153 | 0.152 | 0.229 | 0.225 |
+| 10 | 0.202 | 4.328 | 0.436 | 6.310 |
+| 50 | 0.301 | 19.947 | 5.952 | 30.800 |
+| 100 | 0.367 | 41.309 | 12.633 | 66.221 |
+
+两版各完成 12,000 次正式请求：blocking 成功 9882 次，失败 2118 次（2117 次连接阶段超时，1 次接收阶段超时）；epoll 成功 11995 次，失败 5 次，均为连接阶段超时。无测量中途停止，工具退出码为 1 表示仍有失败请求，完整结果已保存。单轮失败率的三轮中位数，blocking 为 0%、1.7%、25.7%、45.2%，epoll 为 0%、0%、0.1%、0%；epoll 在并发 100 的失败率中位数为 0%，但三轮合计仍有 1 次失败，不能描述成该档没有失败。
+
+服务端 CPU（100% 为一个逻辑核）和每轮进程生命周期 RSS 峰值的三轮中位数如下。CPU 由内核 tick 采样，RSS 包含启动和预热；客户端资源未测量。
+
+| 并发客户端 | blocking CPU % | epoll CPU % | blocking RSS KiB | epoll RSS KiB |
+|---:|---:|---:|---:|---:|
+| 1 | 40.71 | 53.85 | 3200 | 3200 |
+| 10 | 1.74 | 18.66 | 3200 | 3200 |
+| 50 | 0.55 | 6.96 | 3200 | 3200 |
+| 100 | 0.49 | 17.11 | 3200 | 3200 |
+
+本机这组短连接实验中，epoll 在单客户端下的成功吞吐略低；并发 10/50/100 时成功吞吐更高、失败更少，但成功请求的 P50/P95 更高。两版成功样本集合不同，阻塞版大量超时请求被排除在成功延迟统计之外，所以不能据此宣称 epoll 改善所有请求的延迟，也不能仅凭成功 P95 判断哪版整体体验更好。CPU 百分比的采样窗口长短与完成工作量不同，低 CPU 不等于更高效率。
+
+吞吐也没有随并发数单调变化。epoll 并发 50 的三轮成功吞吐分别为 780.59、725.30、772.02 请求/秒，每轮有 1～2 次连接超时；并发 100 的三轮为 2109.42、2139.90、710.15 请求/秒，第三轮有 1 次连接超时。固定份额的闭环客户端中，即使仅少数请求等待 1 秒超时，也可能成为整轮最后完成的线程，明显拉长总测量时间。这些波动保留在原始数据中，未删除或补跑挑选更好的轮次。
+
+分阶段记录把失败集中定位在客户端的连接操作，但尚无抓包、内核队列计数或 CPU profiling，不能确定连接阶段内部各因素的贡献，也不能把成功延迟的增加归因于某个已证实的单一原因。下一项控制变量实验可独立比较 backlog=1 与较大 backlog，保持其他条件不变；当前数据不证明生产规模、复杂调度或真实 AI 工作负载下的收益。
 
 #### epoll 第一版验证记录
 
@@ -629,7 +690,7 @@ ctest --test-dir build/epoll-check --output-on-failure -R '^epoll_server_'
 - epoll 的每轮预算与输出高水位只限制网络处理，协议处理仍在事件循环中同步执行；大规模调度计算也可能影响其他客户端延迟
 - Worker 状态、等待 Job 与运行记录仅保存在内存中，服务端退出后消失
 - Worker 退出不会注销；待派发任务和运行记录可能长期保留，资源不会自动回收
-- 阻塞版和原 C++ 客户端地址/端口固定；epoll 版可配置端口，但地址固定为 loopback
+- 两版服务端均可配置端口、固定绑定 loopback；原 C++ 客户端地址/端口仍固定
 - 网络 Job 通过 Worker 轮询触发调度；空闲轮询间隔为 1 秒，领取时机还受调度策略、执行和资源状态影响，尚无服务端主动推送
 - 状态修改与响应发送不是原子操作，尚无请求结果缓存或自动恢复机制
 - Scheduler 使用一把粗粒度 mutex，尚未研究锁竞争
