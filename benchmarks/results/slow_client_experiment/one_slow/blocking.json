@@ -1,0 +1,5330 @@
+{
+  "schema_version": 1,
+  "label": "blocking-quiet",
+  "environment": {
+    "created_utc": "2026-10-17T06:38:34.405470+00:00",
+    "os": "Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+    "cpu_model": "AMD Ryzen 7 6800H with Radeon Graphics",
+    "logical_cpus": 16,
+    "python": "3.12.3",
+    "git_commit": "d78e0995868cd20c9e034d4586d03ca7fb4fdb3d",
+    "git_status": "M benchmarks/compare_tcp_servers.py\n M tests/net/tcp_comparison_test.py\n?? benchmarks/results/slow_client_experiment/\n?? benchmarks/slow_client.py",
+    "script_sha256": "f45e4c1f77674c72f3dc1ebc30441462b099f2d12836a0d8cf9499761b6eae08",
+    "server_binary_sha256": "bc90e4ba3d13b067ada6905b7867a158f2f620d3207f6ed15a01eb867a566bbc",
+    "compiler": "c++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0\nCopyright (C) 2023 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.",
+    "build_notes": "Release; quiet; backlog=128; SO_REUSEADDR; fresh server each run; alternating order"
+  },
+  "configuration": {
+    "host": "127.0.0.1",
+    "requests": 100,
+    "warmup": 10,
+    "concurrency": [
+      10,
+      50,
+      100
+    ],
+    "repeat": 3,
+    "timeout_s": 0.2,
+    "quiet": true,
+    "backlog": 128,
+    "slow_clients": 1,
+    "recovery_probe_timeout_s": 1,
+    "reuse_address": true,
+    "fresh_process_per_run": true,
+    "request": "SCHEDULE_NEXT\n",
+    "expected_response": "SCHEDULE_NONE\n",
+    "request_bytes": 14,
+    "response_bytes": 14,
+    "command": [
+      "/usr/bin/python3",
+      "benchmarks/compare_tcp_servers.py",
+      "--build-dir",
+      "build",
+      "--port",
+      "19000",
+      "--backlog",
+      "128",
+      "--slow-clients",
+      "1",
+      "--requests",
+      "100",
+      "--warmup",
+      "10",
+      "--concurrency",
+      "10",
+      "50",
+      "100",
+      "--repeat",
+      "3",
+      "--timeout",
+      "0.2",
+      "--output-dir",
+      "benchmarks/results/slow_client_experiment/one_slow"
+    ],
+    "port": 19000
+  },
+  "runs": [
+    {
+      "concurrency": 10,
+      "requests": 100,
+      "warmup": 10,
+      "completed": 0,
+      "failed": 100,
+      "error_rate_pct": 100.0,
+      "elapsed_s": 2.018767415,
+      "throughput_success_rps": 0.0,
+      "p50_ms": null,
+      "p95_ms": null,
+      "errors": {
+        "receive: TimeoutError: timed out": 100
+      },
+      "latencies_ns": [],
+      "failures": [
+        {
+          "elapsed_ns": 202965712,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200506595,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200491835,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200480723,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200810290,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 201161684,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200975377,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 201991358,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 201514686,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200823737,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 203550233,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 202506116,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 202488879,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 202636204,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 201825168,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 201737582,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200428193,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200356406,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200366459,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200293500,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 203270302,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200373288,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200350625,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200512134,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200584676,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200811661,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 201300217,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 201763692,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 201702916,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 201187480,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 202831527,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200392126,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200440878,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200513638,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200543939,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200957854,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 201114308,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 201893734,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 201042834,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 201489662,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 203738020,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 202362999,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 202535502,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 202537688,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 201813647,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 201950468,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200805336,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200749831,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200291239,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 201061495,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 203121644,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 202981894,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 201462026,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 202068029,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200484847,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200539685,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200518213,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200462352,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200407935,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200523460,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 203344869,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200534880,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200496897,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200476261,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200493389,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 201005213,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 201318019,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 201390475,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 201901218,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200774898,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 204212752,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 203135806,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 202171380,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 202047861,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 202595008,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200957332,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200803960,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200647810,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200589941,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200909357,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 204077013,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 202344175,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 203126696,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 201478303,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 201857970,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 201448988,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200417673,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200422941,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200421615,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200399196,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 204173852,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 202493199,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 202080875,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 202820106,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 202000127,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 201680146,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200434572,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200663291,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200831847,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200693090,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        }
+      ],
+      "server": {
+        "available": true,
+        "cpu_seconds": 0.0,
+        "cpu_pct_one_core": 0.0,
+        "sample_interval_s": 2.018995821,
+        "process_lifetime_peak_rss_kib": 3200
+      },
+      "warmup_before_slow_setup": true,
+      "slow_client": {
+        "count": 1,
+        "prefix": "SCHEDULE_NEXT ",
+        "drip_interval_s": 0.5,
+        "max_body_bytes": 128,
+        "accepted_observed": true,
+        "socket_inode": "900744",
+        "local": "0100007F:4A38",
+        "remote": "0100007F:8A1C",
+        "body_bytes_before_newline": 18,
+        "no_response_before_newline": true,
+        "release_response": "SCHEDULE_NONE\n",
+        "valid": true
+      },
+      "repeat": 1,
+      "server_process": {
+        "label": "blocking",
+        "concurrency": 10,
+        "repeat": 1,
+        "port": 19000,
+        "backlog": 128,
+        "server_command": [
+          "/home/zzm/C++/HeteroSched/build/scheduler_server",
+          "--port",
+          "19000",
+          "--backlog",
+          "128",
+          "--quiet"
+        ],
+        "server_pid": 46004,
+        "stderr_log": "/home/zzm/C++/HeteroSched/build/tcp-comparison-logs/s1-b128-c10-r1-blocking.log"
+      },
+      "recovery_probe": {
+        "ok": true,
+        "latency_ns": 3480063
+      },
+      "listen_counters": {
+        "available": true,
+        "before": {
+          "ListenOverflows": 9321,
+          "ListenDrops": 9321
+        },
+        "after": {
+          "ListenOverflows": 9321,
+          "ListenDrops": 9321
+        },
+        "delta": {
+          "ListenOverflows": 0,
+          "ListenDrops": 0
+        },
+        "scope": "network_namespace",
+        "window": "warmup_setup_measured_requests_and_recovery"
+      },
+      "server_stdout_after_startup": "",
+      "server_stderr_bytes": 0
+    },
+    {
+      "concurrency": 10,
+      "requests": 100,
+      "warmup": 10,
+      "completed": 0,
+      "failed": 100,
+      "error_rate_pct": 100.0,
+      "elapsed_s": 2.015508757,
+      "throughput_success_rps": 0.0,
+      "p50_ms": null,
+      "p95_ms": null,
+      "errors": {
+        "receive: TimeoutError: timed out": 100
+      },
+      "latencies_ns": [],
+      "failures": [
+        {
+          "elapsed_ns": 203596105,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200719630,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200387207,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200373848,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 201336214,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 201539021,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 202978177,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200575022,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200514419,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200465305,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 202725127,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 202375135,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 201172199,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200702766,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200350015,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 201024898,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 201953535,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 201546357,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 201532348,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200466850,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 204683923,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200908503,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200412891,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200332245,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200548787,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 201147502,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 203146516,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 201595945,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200960700,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200976172,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 203402952,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 201623800,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200929617,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200222631,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200214053,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 201002462,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 202089898,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200424532,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200281555,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200437026,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 202720268,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200568166,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200466862,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200666612,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 201864053,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200937254,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 202499579,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200355197,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200437415,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200487028,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 203407264,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200380610,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200182515,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200656845,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200977933,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 201215763,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 201967056,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200287509,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200350025,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200636041,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 204399384,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 201475631,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 201085530,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 201011283,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200391163,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 201302358,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 201739498,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 201602487,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200951254,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200805519,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 202086567,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200457891,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200774686,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200734376,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 201407044,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 201093071,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 203670078,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200417960,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200549587,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200441954,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 202758552,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 202379583,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 201692000,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200489181,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200342451,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200715036,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 202837950,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 201183729,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200543303,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200894142,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 203888451,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 201491304,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 201371528,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200903927,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200330167,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200815180,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 201988115,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 201542298,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200496010,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200303215,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        }
+      ],
+      "server": {
+        "available": true,
+        "cpu_seconds": 0.0,
+        "cpu_pct_one_core": 0.0,
+        "sample_interval_s": 2.015701791,
+        "process_lifetime_peak_rss_kib": 3200
+      },
+      "warmup_before_slow_setup": true,
+      "slow_client": {
+        "count": 1,
+        "prefix": "SCHEDULE_NEXT ",
+        "drip_interval_s": 0.5,
+        "max_body_bytes": 128,
+        "accepted_observed": true,
+        "socket_inode": "910595",
+        "local": "0100007F:4A38",
+        "remote": "0100007F:960C",
+        "body_bytes_before_newline": 18,
+        "no_response_before_newline": true,
+        "release_response": "SCHEDULE_NONE\n",
+        "valid": true
+      },
+      "repeat": 2,
+      "server_process": {
+        "label": "blocking",
+        "concurrency": 10,
+        "repeat": 2,
+        "port": 19000,
+        "backlog": 128,
+        "server_command": [
+          "/home/zzm/C++/HeteroSched/build/scheduler_server",
+          "--port",
+          "19000",
+          "--backlog",
+          "128",
+          "--quiet"
+        ],
+        "server_pid": 46053,
+        "stderr_log": "/home/zzm/C++/HeteroSched/build/tcp-comparison-logs/s1-b128-c10-r2-blocking.log"
+      },
+      "recovery_probe": {
+        "ok": true,
+        "latency_ns": 3851425
+      },
+      "listen_counters": {
+        "available": true,
+        "before": {
+          "ListenOverflows": 9321,
+          "ListenDrops": 9321
+        },
+        "after": {
+          "ListenOverflows": 9321,
+          "ListenDrops": 9321
+        },
+        "delta": {
+          "ListenOverflows": 0,
+          "ListenDrops": 0
+        },
+        "scope": "network_namespace",
+        "window": "warmup_setup_measured_requests_and_recovery"
+      },
+      "server_stdout_after_startup": "",
+      "server_stderr_bytes": 0
+    },
+    {
+      "concurrency": 10,
+      "requests": 100,
+      "warmup": 10,
+      "completed": 0,
+      "failed": 100,
+      "error_rate_pct": 100.0,
+      "elapsed_s": 2.013250533,
+      "throughput_success_rps": 0.0,
+      "p50_ms": null,
+      "p95_ms": null,
+      "errors": {
+        "receive: TimeoutError: timed out": 100
+      },
+      "latencies_ns": [],
+      "failures": [
+        {
+          "elapsed_ns": 203596356,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200253262,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200358587,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200345695,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200319394,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 201199774,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200542701,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200716736,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 201318153,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200487688,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 203236093,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200407108,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200338235,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200323544,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 201184872,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200301069,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200295014,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200968044,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200807480,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 201350383,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 202538968,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200435996,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200640202,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200582009,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 201104886,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200865675,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200424490,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 201208601,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200531311,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 201187649,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 203394467,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 202460771,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200359433,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200253101,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200412258,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200380433,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200601757,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200688501,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 202205963,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 201382808,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 204480280,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 202014376,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200364623,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200426540,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200372707,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200395216,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200577276,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200483270,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 202095764,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 201275357,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 203198225,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200198634,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200315936,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200506001,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 201152584,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200836150,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200536670,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200644533,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 201238559,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200631309,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 204109280,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 201912309,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200757239,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200451348,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200434028,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200344077,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200221642,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200392584,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 202230368,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200960298,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 203732519,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 202715644,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200699886,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200495088,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200370226,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200348794,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200365024,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 201211326,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 201418307,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200884913,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 204822894,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 201707201,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200491851,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200782466,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200502667,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200371791,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200226972,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200822313,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200912427,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200646195,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 203577826,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 202261723,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200418013,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200430897,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200412759,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200505292,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200650114,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200506794,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 202334928,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200920882,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        }
+      ],
+      "server": {
+        "available": true,
+        "cpu_seconds": 0.0,
+        "cpu_pct_one_core": 0.0,
+        "sample_interval_s": 2.01346357,
+        "process_lifetime_peak_rss_kib": 3200
+      },
+      "warmup_before_slow_setup": true,
+      "slow_client": {
+        "count": 1,
+        "prefix": "SCHEDULE_NEXT ",
+        "drip_interval_s": 0.5,
+        "max_body_bytes": 128,
+        "accepted_observed": true,
+        "socket_inode": "905733",
+        "local": "0100007F:4A38",
+        "remote": "0100007F:9A1A",
+        "body_bytes_before_newline": 18,
+        "no_response_before_newline": true,
+        "release_response": "SCHEDULE_NONE\n",
+        "valid": true
+      },
+      "repeat": 3,
+      "server_process": {
+        "label": "blocking",
+        "concurrency": 10,
+        "repeat": 3,
+        "port": 19000,
+        "backlog": 128,
+        "server_command": [
+          "/home/zzm/C++/HeteroSched/build/scheduler_server",
+          "--port",
+          "19000",
+          "--backlog",
+          "128",
+          "--quiet"
+        ],
+        "server_pid": 46074,
+        "stderr_log": "/home/zzm/C++/HeteroSched/build/tcp-comparison-logs/s1-b128-c10-r3-blocking.log"
+      },
+      "recovery_probe": {
+        "ok": true,
+        "latency_ns": 3684853
+      },
+      "listen_counters": {
+        "available": true,
+        "before": {
+          "ListenOverflows": 9321,
+          "ListenDrops": 9321
+        },
+        "after": {
+          "ListenOverflows": 9321,
+          "ListenDrops": 9321
+        },
+        "delta": {
+          "ListenOverflows": 0,
+          "ListenDrops": 0
+        },
+        "scope": "network_namespace",
+        "window": "warmup_setup_measured_requests_and_recovery"
+      },
+      "server_stdout_after_startup": "",
+      "server_stderr_bytes": 0
+    },
+    {
+      "concurrency": 50,
+      "requests": 100,
+      "warmup": 10,
+      "completed": 0,
+      "failed": 100,
+      "error_rate_pct": 100.0,
+      "elapsed_s": 0.434105623,
+      "throughput_success_rps": 0.0,
+      "p50_ms": null,
+      "p95_ms": null,
+      "errors": {
+        "receive: TimeoutError: timed out": 100
+      },
+      "latencies_ns": [],
+      "failures": [
+        {
+          "elapsed_ns": 216740744,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 210473584,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 218872475,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 212356335,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 219425920,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 206514981,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 219561532,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 212418707,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 218277773,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 214244889,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 215651598,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 210871193,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 217422010,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 210778769,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 210767688,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200437022,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 215104391,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 201905072,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 207279100,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200570634,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 211834831,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200227145,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 218208011,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 207348561,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 215228521,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 201675506,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 217123268,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 212134822,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 216839344,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 208297912,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 212152284,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 208992729,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 218508970,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 208245680,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 212726573,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200439233,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 219174224,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 210742684,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 211092367,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200426888,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 215275371,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 207327240,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 223841809,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 206494143,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 221992331,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 206744972,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 217095283,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 210683157,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 209206935,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200324543,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 219893575,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 209852954,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 214830848,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 211836374,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 217929599,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 207643477,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 215171512,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 210159709,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 212770259,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200367182,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 218753137,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 210427238,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 216770498,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 209409912,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 218096723,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 210245537,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 211904084,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200470772,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 217084741,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 211001075,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 220784318,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 208324068,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 209149235,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200418639,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 217700851,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 211406184,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 217191619,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 207596888,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 212985379,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200427174,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 216566960,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 209175662,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 214841757,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 205331254,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 217487745,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 207391406,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 214780362,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 209713879,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 211478570,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 208200222,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 226961545,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 203796950,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 215840787,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 210133385,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 215158493,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 212644971,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 209196686,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200369262,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 211867643,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200149309,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        }
+      ],
+      "server": {
+        "available": true,
+        "cpu_seconds": 0.0,
+        "cpu_pct_one_core": 0.0,
+        "sample_interval_s": 0.434346405,
+        "process_lifetime_peak_rss_kib": 3200
+      },
+      "warmup_before_slow_setup": true,
+      "slow_client": {
+        "count": 1,
+        "prefix": "SCHEDULE_NEXT ",
+        "drip_interval_s": 0.5,
+        "max_body_bytes": 128,
+        "accepted_observed": true,
+        "socket_inode": "901734",
+        "local": "0100007F:4A38",
+        "remote": "0100007F:D38A",
+        "body_bytes_before_newline": 14,
+        "no_response_before_newline": true,
+        "release_response": "SCHEDULE_NONE\n",
+        "valid": true
+      },
+      "repeat": 1,
+      "server_process": {
+        "label": "blocking",
+        "concurrency": 50,
+        "repeat": 1,
+        "port": 19000,
+        "backlog": 128,
+        "server_command": [
+          "/home/zzm/C++/HeteroSched/build/scheduler_server",
+          "--port",
+          "19000",
+          "--backlog",
+          "128",
+          "--quiet"
+        ],
+        "server_pid": 46106,
+        "stderr_log": "/home/zzm/C++/HeteroSched/build/tcp-comparison-logs/s1-b128-c50-r1-blocking.log"
+      },
+      "recovery_probe": {
+        "ok": true,
+        "latency_ns": 4572922
+      },
+      "listen_counters": {
+        "available": true,
+        "before": {
+          "ListenOverflows": 9321,
+          "ListenDrops": 9321
+        },
+        "after": {
+          "ListenOverflows": 9321,
+          "ListenDrops": 9321
+        },
+        "delta": {
+          "ListenOverflows": 0,
+          "ListenDrops": 0
+        },
+        "scope": "network_namespace",
+        "window": "warmup_setup_measured_requests_and_recovery"
+      },
+      "server_stdout_after_startup": "",
+      "server_stderr_bytes": 0
+    },
+    {
+      "concurrency": 50,
+      "requests": 100,
+      "warmup": 10,
+      "completed": 0,
+      "failed": 100,
+      "error_rate_pct": 100.0,
+      "elapsed_s": 0.434434921,
+      "throughput_success_rps": 0.0,
+      "p50_ms": null,
+      "p95_ms": null,
+      "errors": {
+        "receive: TimeoutError: timed out": 100
+      },
+      "latencies_ns": [],
+      "failures": [
+        {
+          "elapsed_ns": 221040407,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 210864304,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 211371005,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 203961411,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 210060054,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200499890,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 207107101,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 203490774,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 221078078,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 211618553,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 210070469,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200472775,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 211037580,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 212085313,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 218118898,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 205669386,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 218903921,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 211277132,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 215977027,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 213573360,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 223595774,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 207161584,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 214189744,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200278719,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 216301272,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 209294563,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 211804887,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200344051,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 220561004,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 204781494,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 212374117,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200539802,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 221277441,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 208997797,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 220515647,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 209774021,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 216690417,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 207006184,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 214121728,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 208224839,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 211790112,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200447279,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 203438777,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 207279879,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 217688296,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 211530932,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 214592014,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 211453833,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 224258900,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 207823255,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 216593980,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 212936214,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 225638381,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 205652715,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 213967985,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200388549,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 216445412,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 210806481,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 218354578,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 209957832,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 217457127,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 208442910,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 211705122,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200362266,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 218406218,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 208511873,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 212093562,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 209253474,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 223401759,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 207891622,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 219900573,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 207387744,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 214050436,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200609241,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 219231988,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 209534640,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 216943189,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 212161808,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 213179321,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 209657561,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 221630376,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 209177001,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 215000183,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 211218504,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 209404788,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200299289,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 210130735,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 207069155,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 217214050,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 212660097,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 220591109,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 208139275,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 213749041,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 201252512,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 218600203,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 209164432,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 213568314,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200883205,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 211152974,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 208917661,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        }
+      ],
+      "server": {
+        "available": true,
+        "cpu_seconds": 0.0,
+        "cpu_pct_one_core": 0.0,
+        "sample_interval_s": 0.434885205,
+        "process_lifetime_peak_rss_kib": 3200
+      },
+      "warmup_before_slow_setup": true,
+      "slow_client": {
+        "count": 1,
+        "prefix": "SCHEDULE_NEXT ",
+        "drip_interval_s": 0.5,
+        "max_body_bytes": 128,
+        "accepted_observed": true,
+        "socket_inode": "911620",
+        "local": "0100007F:4A38",
+        "remote": "0100007F:DF76",
+        "body_bytes_before_newline": 14,
+        "no_response_before_newline": true,
+        "release_response": "SCHEDULE_NONE\n",
+        "valid": true
+      },
+      "repeat": 2,
+      "server_process": {
+        "label": "blocking",
+        "concurrency": 50,
+        "repeat": 2,
+        "port": 19000,
+        "backlog": 128,
+        "server_command": [
+          "/home/zzm/C++/HeteroSched/build/scheduler_server",
+          "--port",
+          "19000",
+          "--backlog",
+          "128",
+          "--quiet"
+        ],
+        "server_pid": 46273,
+        "stderr_log": "/home/zzm/C++/HeteroSched/build/tcp-comparison-logs/s1-b128-c50-r2-blocking.log"
+      },
+      "recovery_probe": {
+        "ok": true,
+        "latency_ns": 3643397
+      },
+      "listen_counters": {
+        "available": true,
+        "before": {
+          "ListenOverflows": 9321,
+          "ListenDrops": 9321
+        },
+        "after": {
+          "ListenOverflows": 9321,
+          "ListenDrops": 9321
+        },
+        "delta": {
+          "ListenOverflows": 0,
+          "ListenDrops": 0
+        },
+        "scope": "network_namespace",
+        "window": "warmup_setup_measured_requests_and_recovery"
+      },
+      "server_stdout_after_startup": "",
+      "server_stderr_bytes": 0
+    },
+    {
+      "concurrency": 50,
+      "requests": 100,
+      "warmup": 10,
+      "completed": 0,
+      "failed": 100,
+      "error_rate_pct": 100.0,
+      "elapsed_s": 0.431734327,
+      "throughput_success_rps": 0.0,
+      "p50_ms": null,
+      "p95_ms": null,
+      "errors": {
+        "receive: TimeoutError: timed out": 100
+      },
+      "latencies_ns": [],
+      "failures": [
+        {
+          "elapsed_ns": 216599937,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200722594,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 219586543,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 208167704,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 223185794,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 206135704,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 212340893,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200427276,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 219231906,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 209332097,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 215076610,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200360375,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 208463137,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200360625,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 208710137,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200357324,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 213242833,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200417151,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 209510087,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200356945,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 222421830,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 207596269,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 216225438,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200558350,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 219794903,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 209271245,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 212848844,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200445921,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 222712098,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 206927160,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 218876640,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 209566809,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 219929331,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 209750420,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 213805558,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200803295,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 212963959,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200206688,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 206807738,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200397185,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 216236688,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 205285923,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 217097268,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 209675626,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 223104928,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 206435202,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 220176465,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 208459206,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 215959276,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 207456728,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 217340643,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 209400173,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 218005726,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 211407079,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 217109830,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 210093556,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 209163224,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200432894,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 207352451,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 208513929,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 214394887,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200363834,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 205547047,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200515188,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 209615034,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200327052,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 214895219,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200771618,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 213803361,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 210255365,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 219665062,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 208197093,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 217133951,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 207875950,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 219658228,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 208336407,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 214339946,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200375680,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 211623804,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 210418763,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 218282879,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 208629711,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 212001740,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 210648233,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 217297282,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 209742491,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 217170873,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 209730328,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 210676355,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200394156,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 208444353,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 206970151,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 215943492,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 211753325,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 210481079,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 200177494,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 216543911,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 206411734,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 213167954,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 205976124,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        }
+      ],
+      "server": {
+        "available": true,
+        "cpu_seconds": 0.0,
+        "cpu_pct_one_core": 0.0,
+        "sample_interval_s": 0.432038628,
+        "process_lifetime_peak_rss_kib": 3200
+      },
+      "warmup_before_slow_setup": true,
+      "slow_client": {
+        "count": 1,
+        "prefix": "SCHEDULE_NEXT ",
+        "drip_interval_s": 0.5,
+        "max_body_bytes": 128,
+        "accepted_observed": true,
+        "socket_inode": "910767",
+        "local": "0100007F:4A38",
+        "remote": "0100007F:E35C",
+        "body_bytes_before_newline": 14,
+        "no_response_before_newline": true,
+        "release_response": "SCHEDULE_NONE\n",
+        "valid": true
+      },
+      "repeat": 3,
+      "server_process": {
+        "label": "blocking",
+        "concurrency": 50,
+        "repeat": 3,
+        "port": 19000,
+        "backlog": 128,
+        "server_command": [
+          "/home/zzm/C++/HeteroSched/build/scheduler_server",
+          "--port",
+          "19000",
+          "--backlog",
+          "128",
+          "--quiet"
+        ],
+        "server_pid": 46330,
+        "stderr_log": "/home/zzm/C++/HeteroSched/build/tcp-comparison-logs/s1-b128-c50-r3-blocking.log"
+      },
+      "recovery_probe": {
+        "ok": true,
+        "latency_ns": 3649642
+      },
+      "listen_counters": {
+        "available": true,
+        "before": {
+          "ListenOverflows": 9321,
+          "ListenDrops": 9321
+        },
+        "after": {
+          "ListenOverflows": 9321,
+          "ListenDrops": 9321
+        },
+        "delta": {
+          "ListenOverflows": 0,
+          "ListenDrops": 0
+        },
+        "scope": "network_namespace",
+        "window": "warmup_setup_measured_requests_and_recovery"
+      },
+      "server_stdout_after_startup": "",
+      "server_stderr_bytes": 0
+    },
+    {
+      "concurrency": 100,
+      "requests": 100,
+      "warmup": 10,
+      "completed": 0,
+      "failed": 100,
+      "error_rate_pct": 100.0,
+      "elapsed_s": 0.242473606,
+      "throughput_success_rps": 0.0,
+      "p50_ms": null,
+      "p95_ms": null,
+      "errors": {
+        "receive: TimeoutError: timed out": 100
+      },
+      "latencies_ns": [],
+      "failures": [
+        {
+          "elapsed_ns": 228533655,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 232986678,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 233592485,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 226353605,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 232780374,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 233112715,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 223625482,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 235483339,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 226025082,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 236902096,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 225725755,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 226104216,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 229958005,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 226557915,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 228514716,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 219325612,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 228287631,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 234706856,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 233302137,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 222600014,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 229205237,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 226533138,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 228374620,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 214482510,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 225453480,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 231670898,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 230302418,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 225367308,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 230273494,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 222693177,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 234737383,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 222370764,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 229150553,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 235952903,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 220391894,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 231432207,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 229641070,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 214134080,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 227741323,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 225510440,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 229417671,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 235572949,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 237340394,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 222579753,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 235453719,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 234595226,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 236300267,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 231302270,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 220353855,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 237733950,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 222464026,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 233989328,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 236725849,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 225147974,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 214407073,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 230768651,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 229198698,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 229628557,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 227652050,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 214046478,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 218354175,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 222362925,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 229684562,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 216460207,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 216592585,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 226090417,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 236213124,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 228179504,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 218510296,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 237009090,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 229184310,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 226720193,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 236332775,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 229460940,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 225618535,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 236789059,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 228672197,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 235322567,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 231565681,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 234453160,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 207608004,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 214638207,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 228761883,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 233088442,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 226266116,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 217783652,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 226453639,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 225606674,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 220845760,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 225841233,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 222150552,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 221872867,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 230578130,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 228953433,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 225952453,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 219812584,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 221020649,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 218095508,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 228582291,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 235418757,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        }
+      ],
+      "server": {
+        "available": true,
+        "cpu_seconds": 0.0,
+        "cpu_pct_one_core": 0.0,
+        "sample_interval_s": 0.242786332,
+        "process_lifetime_peak_rss_kib": 3200
+      },
+      "warmup_before_slow_setup": true,
+      "slow_client": {
+        "count": 1,
+        "prefix": "SCHEDULE_NEXT ",
+        "drip_interval_s": 0.5,
+        "max_body_bytes": 128,
+        "accepted_observed": true,
+        "socket_inode": "911794",
+        "local": "0100007F:4A38",
+        "remote": "0100007F:EB90",
+        "body_bytes_before_newline": 14,
+        "no_response_before_newline": true,
+        "release_response": "SCHEDULE_NONE\n",
+        "valid": true
+      },
+      "repeat": 1,
+      "server_process": {
+        "label": "blocking",
+        "concurrency": 100,
+        "repeat": 1,
+        "port": 19000,
+        "backlog": 128,
+        "server_command": [
+          "/home/zzm/C++/HeteroSched/build/scheduler_server",
+          "--port",
+          "19000",
+          "--backlog",
+          "128",
+          "--quiet"
+        ],
+        "server_pid": 46439,
+        "stderr_log": "/home/zzm/C++/HeteroSched/build/tcp-comparison-logs/s1-b128-c100-r1-blocking.log"
+      },
+      "recovery_probe": {
+        "ok": true,
+        "latency_ns": 3847317
+      },
+      "listen_counters": {
+        "available": true,
+        "before": {
+          "ListenOverflows": 9321,
+          "ListenDrops": 9321
+        },
+        "after": {
+          "ListenOverflows": 9321,
+          "ListenDrops": 9321
+        },
+        "delta": {
+          "ListenOverflows": 0,
+          "ListenDrops": 0
+        },
+        "scope": "network_namespace",
+        "window": "warmup_setup_measured_requests_and_recovery"
+      },
+      "server_stdout_after_startup": "",
+      "server_stderr_bytes": 0
+    },
+    {
+      "concurrency": 100,
+      "requests": 100,
+      "warmup": 10,
+      "completed": 0,
+      "failed": 100,
+      "error_rate_pct": 100.0,
+      "elapsed_s": 0.243536206,
+      "throughput_success_rps": 0.0,
+      "p50_ms": null,
+      "p95_ms": null,
+      "errors": {
+        "receive: TimeoutError: timed out": 100
+      },
+      "latencies_ns": [],
+      "failures": [
+        {
+          "elapsed_ns": 219346618,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 229892648,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 230947486,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 224363303,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 233630347,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 234084420,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 233734839,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 230826063,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 215314077,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 214621848,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 223459638,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 234270649,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 239954745,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 208901254,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 227815298,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 240887376,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 227023601,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 226324877,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 226884413,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 240084788,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 230428105,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 230435561,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 239423912,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 235759564,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 233438828,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 230522112,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 223469426,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 237281165,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 210702733,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 227014277,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 231856940,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 229212149,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 214951909,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 213872726,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 226732854,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 238946550,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 225833817,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 213727020,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 231838794,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 232007116,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 224588924,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 232583419,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 235106215,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 214699877,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 232891716,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 219753622,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 220277592,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 227414357,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 236181950,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 228370287,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 224589175,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 222921606,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 232486753,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 223078001,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 213682929,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 226534600,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 232993335,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 234787293,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 227433415,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 222875680,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 238747486,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 229818923,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 232364467,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 231079332,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 213069620,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 218126976,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 234748610,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 219521038,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 230659625,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 226467773,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 229236363,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 236010899,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 232216889,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 218513815,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 236604228,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 234253750,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 229422242,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 226339276,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 218009593,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 226433944,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 219191826,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 209712981,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 218279394,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 237336953,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 232017044,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 235579522,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 237352348,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 232077714,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 218906151,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 223855947,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 236287923,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 236299036,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 218248618,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 231542841,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 219467641,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 218206015,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 218393599,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 227626033,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 231258678,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 236194452,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        }
+      ],
+      "server": {
+        "available": true,
+        "cpu_seconds": 0.0,
+        "cpu_pct_one_core": 0.0,
+        "sample_interval_s": 0.243731798,
+        "process_lifetime_peak_rss_kib": 3200
+      },
+      "warmup_before_slow_setup": true,
+      "slow_client": {
+        "count": 1,
+        "prefix": "SCHEDULE_NEXT ",
+        "drip_interval_s": 0.5,
+        "max_body_bytes": 128,
+        "accepted_observed": true,
+        "socket_inode": "902115",
+        "local": "0100007F:4A38",
+        "remote": "0100007F:894C",
+        "body_bytes_before_newline": 14,
+        "no_response_before_newline": true,
+        "release_response": "SCHEDULE_NONE\n",
+        "valid": true
+      },
+      "repeat": 2,
+      "server_process": {
+        "label": "blocking",
+        "concurrency": 100,
+        "repeat": 2,
+        "port": 19000,
+        "backlog": 128,
+        "server_command": [
+          "/home/zzm/C++/HeteroSched/build/scheduler_server",
+          "--port",
+          "19000",
+          "--backlog",
+          "128",
+          "--quiet"
+        ],
+        "server_pid": 46750,
+        "stderr_log": "/home/zzm/C++/HeteroSched/build/tcp-comparison-logs/s1-b128-c100-r2-blocking.log"
+      },
+      "recovery_probe": {
+        "ok": true,
+        "latency_ns": 4753115
+      },
+      "listen_counters": {
+        "available": true,
+        "before": {
+          "ListenOverflows": 9321,
+          "ListenDrops": 9321
+        },
+        "after": {
+          "ListenOverflows": 9321,
+          "ListenDrops": 9321
+        },
+        "delta": {
+          "ListenOverflows": 0,
+          "ListenDrops": 0
+        },
+        "scope": "network_namespace",
+        "window": "warmup_setup_measured_requests_and_recovery"
+      },
+      "server_stdout_after_startup": "",
+      "server_stderr_bytes": 0
+    },
+    {
+      "concurrency": 100,
+      "requests": 100,
+      "warmup": 10,
+      "completed": 0,
+      "failed": 100,
+      "error_rate_pct": 100.0,
+      "elapsed_s": 0.244302128,
+      "throughput_success_rps": 0.0,
+      "p50_ms": null,
+      "p95_ms": null,
+      "errors": {
+        "receive: TimeoutError: timed out": 100
+      },
+      "latencies_ns": [],
+      "failures": [
+        {
+          "elapsed_ns": 223873586,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 229756549,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 227937874,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 234523562,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 234982401,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 226302569,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 236747762,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 236020326,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 225400410,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 239433358,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 234815449,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 228189611,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 218061611,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 222345295,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 234097421,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 237919550,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 234994179,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 232025091,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 226684329,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 223772186,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 220033511,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 234387426,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 228127051,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 228400348,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 231166773,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 223948472,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 230226025,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 221910586,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 219952945,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 235509203,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 227795585,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 214071299,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 230984544,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 231000224,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 233052343,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 223103728,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 219050285,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 217007838,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 227400215,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 223796534,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 226055741,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 224075782,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 222732277,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 238135363,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 228807645,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 222728953,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 231349509,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 230883565,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 210228777,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 228033437,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 235291147,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 228226334,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 236328137,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 229694152,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 233100463,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 228625987,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 227363900,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 227081730,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 231139400,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 217924953,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 233696537,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 219459914,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 233278657,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 229758150,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 233275189,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 237017912,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 220959871,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 226162805,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 219051134,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 214455107,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 227077832,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 232468789,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 232695427,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 223516964,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 217142845,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 237597142,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 232440195,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 225097995,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 232501324,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 230099399,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 236547327,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 230625155,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 232788449,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 223576188,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 230553507,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 234113670,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 229927157,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 214561207,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 225357073,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 208824649,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 235991476,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 230310836,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 225276141,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 232324706,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 227815834,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 223251952,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 222415429,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 232040340,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 222988292,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        },
+        {
+          "elapsed_ns": 227509421,
+          "phase": "receive",
+          "error": "receive: TimeoutError: timed out"
+        }
+      ],
+      "server": {
+        "available": true,
+        "cpu_seconds": 0.0,
+        "cpu_pct_one_core": 0.0,
+        "sample_interval_s": 0.244502107,
+        "process_lifetime_peak_rss_kib": 3200
+      },
+      "warmup_before_slow_setup": true,
+      "slow_client": {
+        "count": 1,
+        "prefix": "SCHEDULE_NEXT ",
+        "drip_interval_s": 0.5,
+        "max_body_bytes": 128,
+        "accepted_observed": true,
+        "socket_inode": "912641",
+        "local": "0100007F:4A38",
+        "remote": "0100007F:8D08",
+        "body_bytes_before_newline": 14,
+        "no_response_before_newline": true,
+        "release_response": "SCHEDULE_NONE\n",
+        "valid": true
+      },
+      "repeat": 3,
+      "server_process": {
+        "label": "blocking",
+        "concurrency": 100,
+        "repeat": 3,
+        "port": 19000,
+        "backlog": 128,
+        "server_command": [
+          "/home/zzm/C++/HeteroSched/build/scheduler_server",
+          "--port",
+          "19000",
+          "--backlog",
+          "128",
+          "--quiet"
+        ],
+        "server_pid": 46855,
+        "stderr_log": "/home/zzm/C++/HeteroSched/build/tcp-comparison-logs/s1-b128-c100-r3-blocking.log"
+      },
+      "recovery_probe": {
+        "ok": true,
+        "latency_ns": 4163507
+      },
+      "listen_counters": {
+        "available": true,
+        "before": {
+          "ListenOverflows": 9321,
+          "ListenDrops": 9321
+        },
+        "after": {
+          "ListenOverflows": 9321,
+          "ListenDrops": 9321
+        },
+        "delta": {
+          "ListenOverflows": 0,
+          "ListenDrops": 0
+        },
+        "scope": "network_namespace",
+        "window": "warmup_setup_measured_requests_and_recovery"
+      },
+      "server_stdout_after_startup": "",
+      "server_stderr_bytes": 0
+    }
+  ],
+  "aborted": null,
+  "summary": [
+    {
+      "concurrency": 10,
+      "runs": 3,
+      "total_completed": 0,
+      "total_failed": 300,
+      "median_throughput_success_rps": 0.0,
+      "median_error_rate_pct": 100.0,
+      "median_p50_ms": null,
+      "median_p95_ms": null
+    },
+    {
+      "concurrency": 50,
+      "runs": 3,
+      "total_completed": 0,
+      "total_failed": 300,
+      "median_throughput_success_rps": 0.0,
+      "median_error_rate_pct": 100.0,
+      "median_p50_ms": null,
+      "median_p95_ms": null
+    },
+    {
+      "concurrency": 100,
+      "runs": 3,
+      "total_completed": 0,
+      "total_failed": 300,
+      "median_throughput_success_rps": 0.0,
+      "median_error_rate_pct": 100.0,
+      "median_p50_ms": null,
+      "median_p95_ms": null
+    }
+  ]
+}

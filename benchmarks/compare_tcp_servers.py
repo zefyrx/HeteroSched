@@ -13,6 +13,7 @@ import sys
 from types import SimpleNamespace
 
 import tcp_benchmark as benchmark
+from slow_client import run_slow_case
 
 
 class ServerProcess:
@@ -104,7 +105,8 @@ def counter_delta(before, after):
         return {"available": False}
     return {"available": True, "before": before, "after": after,
             "delta": {key: after[key] - before[key] for key in before},
-            "scope": "network_namespace", "window": "warmup_and_measured_requests"}
+            "scope": "network_namespace",
+            "window": "warmup_setup_measured_requests_and_recovery"}
 
 
 def comparison_rows(reports):
@@ -145,6 +147,8 @@ def main():
     parser.add_argument("--timeout", type=float, default=1.0)
     parser.add_argument("--backlog", type=int, default=1,
                         help="Requested listen backlog for both servers (default: 1)")
+    parser.add_argument("--slow-clients", type=int, choices=(0, 1), default=0,
+                        help="Hold one accepted incomplete request during normal traffic (Linux)")
     args = parser.parse_args()
     if not 0 <= args.port <= 65535:
         parser.error("--port must be between 0 and 65535")
@@ -157,6 +161,11 @@ def main():
     if (len(set(args.concurrency)) != len(args.concurrency) or
             any(c <= 0 or c > args.requests for c in args.concurrency)):
         parser.error("concurrency values must be unique and between 1 and requests")
+    if args.slow_clients:
+        if args.backlog != 128 or args.requests >= 128:
+            parser.error("slow-client experiment requires --backlog 128 and --requests < 128")
+        if math.ceil(args.requests / min(args.concurrency)) * args.timeout > 30:
+            parser.error("slow-client experiment requires requests-per-thread * timeout <= 30s")
     build_dir = args.build_dir.resolve()
     try:
         cache = read_cache(build_dir)
@@ -173,6 +182,8 @@ def main():
     configuration = {"host": "127.0.0.1", "requests": args.requests, "warmup": args.warmup,
                      "concurrency": args.concurrency, "repeat": args.repeat,
                      "timeout_s": args.timeout, "quiet": True, "backlog": args.backlog,
+                     "slow_clients": args.slow_clients,
+                     "recovery_probe_timeout_s": 1,
                      "reuse_address": True, "fresh_process_per_run": True,
                      "request": "SCHEDULE_NEXT\n", "expected_response": "SCHEDULE_NONE\n",
                      "request_bytes": 14, "response_bytes": 14,
@@ -190,6 +201,7 @@ def main():
                      if path.suffix in (".h", ".cpp"))
     comparison = {"schema_version": 1, "configuration": configuration,
                   "runner_sha256": benchmark.file_hash(__file__),
+                  "slow_client_helper_sha256": benchmark.file_hash(root / "benchmarks/slow_client.py"),
                   "source_sha256": {str(path.relative_to(root)): benchmark.file_hash(path)
                                     for path in sources},
                   "cmake": {key: cache.get(key) for key in (
@@ -205,7 +217,7 @@ def main():
                 order = ("blocking", "epoll") if repeat % 2 else ("epoll", "blocking")
                 for label in order:
                     log_path = (build_dir / "tcp-comparison-logs" /
-                                f"b{args.backlog}-c{concurrency}-r{repeat}-{label}.log")
+                                f"s{args.slow_clients}-b{args.backlog}-c{concurrency}-r{repeat}-{label}.log")
                     with ServerProcess(binaries[label], selected_port, log_path,
                                        backlog=args.backlog) as server:
                         selected_port = server.port
@@ -217,13 +229,23 @@ def main():
                         print(f"Running {label}: backlog={args.backlog}, clients={concurrency}, repeat={repeat}, "
                               f"port={selected_port}", flush=True)
                         before = listen_counters()
-                        run = benchmark.run_benchmark("127.0.0.1", selected_port, args.timeout,
-                                                      args.requests, args.warmup, concurrency,
-                                                      server.process.pid)
-                        run["listen_counters"] = counter_delta(before, listen_counters())
+                        runner = run_slow_case if args.slow_clients else benchmark.run_benchmark
+                        run = runner("127.0.0.1", selected_port, args.timeout,
+                                     args.requests, args.warmup, concurrency, server.process.pid)
                         run["repeat"] = repeat
                         run["server_process"] = position
                         reports[label]["runs"].append(run)
+                        try:
+                            latency = benchmark.request_once("127.0.0.1", selected_port, 1)
+                            run["recovery_probe"] = {"ok": True, "latency_ns": latency}
+                        except Exception as error:
+                            run["recovery_probe"] = {"ok": False, "error": str(error),
+                                                     "phase": getattr(error, "phase", None)}
+                        run["listen_counters"] = counter_delta(before, listen_counters())
+                        if not run.get("slow_client", {"valid": True})["valid"]:
+                            raise RuntimeError(f"invalid slow-client scenario: {run['slow_client']}")
+                        if not run["recovery_probe"]["ok"]:
+                            raise RuntimeError(f"recovery probe failed: {run['recovery_probe']}")
                         if server.process.poll() is not None:
                             raise RuntimeError(f"{label} exited during measurement; see {log_path}")
                     run["server_stdout_after_startup"] = server.stdout_tail
@@ -242,7 +264,7 @@ def main():
         configuration["port"] = selected_port
         for label, report in reports.items():
             report["aborted"] = comparison["aborted"]
-            report["summary"] = benchmark.summarize(report["runs"])
+            report["summary"] = ([] if comparison["aborted"] else benchmark.summarize(report["runs"]))
             (args.output_dir / f"{label}.json").write_text(
                 json.dumps(report, indent=2, allow_nan=False) + "\n")
         comparison["rows"] = comparison_rows(reports)

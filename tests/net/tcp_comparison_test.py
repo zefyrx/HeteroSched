@@ -1,5 +1,6 @@
 """验证对比工具的条件一致性、进程生命周期和结果保存。"""
 
+import io
 import json
 from pathlib import Path
 import socket
@@ -12,6 +13,8 @@ from unittest.mock import patch
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "benchmarks"))
 from compare_tcp_servers import ServerProcess, counter_delta, listen_counters
+import compare_tcp_servers
+from slow_client import SlowClient, run_slow_case, wait_until_accepted
 
 
 def request(port, payload):
@@ -116,7 +119,8 @@ class ComparisonTests(unittest.TestCase):
                     counters = run["listen_counters"]
                     if counters["available"]:
                         self.assertEqual(counters["scope"], "network_namespace")
-                        self.assertEqual(counters["window"], "warmup_and_measured_requests")
+                        self.assertEqual(counters["window"],
+                                         "warmup_setup_measured_requests_and_recovery")
                         self.assertTrue(all(value >= 0 for value in counters["delta"].values()))
 
     def test_blocking_backlog_can_hold_a_burst_while_one_client_is_incomplete(self):
@@ -149,6 +153,87 @@ class ComparisonTests(unittest.TestCase):
             for value in ("0", "-1", "2147483648"):
                 result = self.compare(Path(directory), "--backlog", value)
                 self.assertEqual(result.returncode, 2)
+
+    def test_slow_client_is_accepted_drips_and_releases(self):
+        with tempfile.TemporaryDirectory() as directory:
+            for label in ("blocking", "epoll"):
+                with ServerProcess(self.binary(label), 0, Path(directory) / label,
+                                   backlog=128) as server:
+                    with SlowClient("127.0.0.1", server.port, server.process.pid) as slow:
+                        self.assertTrue(slow.metadata["accepted_observed"])
+                        self.assertTrue(slow.first_drip.wait(2), slow.error)
+                        if label == "blocking":
+                            # 握手完成的排队连接尚无服务端 fd，不能误判为 accepted。
+                            with socket.create_connection(("127.0.0.1", server.port), timeout=1) as queued:
+                                with self.assertRaises(TimeoutError):
+                                    wait_until_accepted(server.process.pid, queued, timeout=0.05)
+                        slow.finish()
+                        self.assertGreater(slow.metadata["body_bytes_before_newline"], len(slow.prefix))
+                        self.assertEqual(slow.metadata["release_response"], "SCHEDULE_NONE\n")
+                    self.assertEqual(request(server.port, b"SCHEDULE_NEXT\n"), b"SCHEDULE_NONE\n")
+
+    def test_slow_mixed_results_and_recovery_are_saved(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory)
+            result = self.compare(output, "--backlog", "128", "--slow-clients", "1",
+                                  "--requests", "4", "--concurrency", "2",
+                                  "--repeat", "1", "--timeout", "0.1")
+            self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+            comparison = json.loads((output / "comparison.json").read_text())
+            self.assertIsNone(comparison["aborted"])
+            self.assertEqual(comparison["configuration"]["slow_clients"], 1)
+            for label in ("blocking", "epoll"):
+                raw = json.loads((output / f"{label}.json").read_text())
+                run = raw["runs"][0]
+                self.assertTrue(run["slow_client"]["valid"])
+                self.assertTrue(run["slow_client"]["accepted_observed"])
+                self.assertTrue(run["slow_client"]["no_response_before_newline"])
+                self.assertTrue(run["recovery_probe"]["ok"])
+                self.assertEqual(run["warmup"], 1)
+                self.assertTrue(run["warmup_before_slow_setup"])
+                self.assertEqual(run["completed"], 0 if label == "blocking" else 4)
+                self.assertEqual(run["failed"], 4 if label == "blocking" else 0)
+                if label == "blocking":
+                    self.assertIsNone(run["p95_ms"])
+                    self.assertEqual([f["phase"] for f in run["failures"]], ["receive"] * 4)
+
+    def test_invalid_slow_setup_is_rejected(self):
+        with tempfile.TemporaryDirectory() as directory:
+            for arguments in (("--slow-clients", "2"), ("--slow-clients", "1"),
+                              ("--slow-clients", "1", "--backlog", "128", "--requests", "128"),
+                              ("--slow-clients", "1", "--backlog", "128", "--timeout", "31")):
+                result = self.compare(Path(directory), *arguments)
+                self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+
+    def test_failed_slow_release_preserves_measured_samples(self):
+        with tempfile.TemporaryDirectory() as directory:
+            with ServerProcess(self.binary("epoll"), 0, Path(directory) / "epoll",
+                               backlog=128) as server:
+                with patch("slow_client.SlowClient.finish", side_effect=RuntimeError("release failed")):
+                    run = run_slow_case("127.0.0.1", server.port, 1, 2, 1, 2, server.process.pid)
+                self.assertEqual(run["completed"], 2)
+                self.assertEqual(len(run["latencies_ns"]), 2)
+                self.assertFalse(run["slow_client"]["valid"])
+                self.assertIn("release failed", run["slow_client"]["error"])
+                self.assertEqual(request(server.port, b"SCHEDULE_NEXT\n"), b"SCHEDULE_NONE\n")
+
+    def test_invalid_slow_scenario_saves_raw_data_without_summary(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory)
+            arguments = ["compare_tcp_servers.py", "--build-dir", str(BUILD_DIR),
+                         "--output-dir", directory, "--backlog", "128", "--slow-clients", "1",
+                         "--requests", "2", "--warmup", "0", "--concurrency", "2",
+                         "--repeat", "1", "--timeout", "0.05"]
+            with patch.object(sys, "argv", arguments), \
+                    patch("slow_client.SlowClient.finish", side_effect=RuntimeError("invalid release")), \
+                    patch.object(sys, "stdout", io.StringIO()), patch.object(sys, "stderr", io.StringIO()):
+                self.assertEqual(compare_tcp_servers.main(), 1)
+            comparison = json.loads((output / "comparison.json").read_text())
+            self.assertIn("invalid slow-client scenario", comparison["aborted"])
+            self.assertEqual(comparison["rows"], [])
+            raw = json.loads((output / "blocking.json").read_text())
+            self.assertEqual(len(raw["runs"][0]["failures"]), 2)
+            self.assertEqual(raw["summary"], [])
 
     def test_occupied_port_aborts_and_preserves_existing_server(self):
         with tempfile.TemporaryDirectory() as directory:
