@@ -25,7 +25,9 @@ flowchart TD
 ```
 
 两种服务端各自拥有独立的 Scheduler；Worker 客户端使用短连接轮询。
-[可编辑 draw.io 图](assets/architecture.drawio) · [详细图预览](assets/architecture.png)
+[可编辑 draw.io 图（4 页）](assets/architecture.drawio) · [架构总览](assets/architecture.png)
+
+[Worker 任务时序](assets/architecture-lifecycle.png) · [LT epoll 连接处理](assets/architecture-epoll.png) · [CMake 模块依赖](assets/architecture-modules.png)
 
 `apps/` 放置 6 个应用入口；`include/` 与 `src/` 按 `core/`、`net/`、`protocol/` 对应划分接口与实现。
 `tests/` 按同样的模块边界组织测试；`benchmarks/` 保存调度 benchmark、TCP 压测工具与原始结果。

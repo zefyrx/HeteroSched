@@ -1,68 +1,363 @@
-<mxfile host="app.diagrams.net" type="device">
-  <diagram id="heterosched-architecture" name="Architecture">
-    <mxGraphModel dx="1100" dy="1100" grid="1" gridSize="10" page="1" pageWidth="1100" pageHeight="1100" background="#ffffff">
+<?xml version='1.0' encoding='utf-8'?>
+<mxfile host="app.diagrams.net" type="device" modified="2026-10-17T08:45:29+00:00">
+  <diagram id="heterosched-architecture" name="01 架构总览">
+    <mxGraphModel dx="1100" dy="1100" grid="0" gridSize="10" page="1" pageWidth="1100" pageHeight="1160" background="#ffffff">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
-        <mxCell id="clients" value="TCP clients&lt;br&gt;job_client / scheduler_client / worker_client" vertex="1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=16;fillColor=#dae8fc;strokeColor=#6c8ebf;">
+        <mxCell id="clients" value="&lt;b&gt;TCP 客户端&lt;/b&gt;&lt;br&gt;job_client / worker_client / scheduler_client" vertex="1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=16;fillColor=#dae8fc;strokeColor=#6c8ebf;" data-model-id="clients" data-kind="module" data-properties="{}" data-source-properties="{}" data-source-label="&lt;b&gt;TCP 客户端&lt;/b&gt;&lt;br&gt;job_client / worker_client / scheduler_client" data-provenance="{&quot;path&quot;:&quot;apps/worker_client.cpp&quot;}">
           <mxGeometry x="280" y="30" width="540" height="80" as="geometry" />
         </mxCell>
-        <mxCell id="server" value="Scheduler process — choose one TCP entry point" vertex="1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=16;fillColor=#dae8fc;strokeColor=#6c8ebf;swimlane;startSize=40;fillColor=#f5f5f5;strokeColor=#666666;fontStyle=1;container=1;pointerEvents=0;">
+        <mxCell id="server" value="Scheduler 服务端进程 · 两种 TCP 入口任选其一" vertex="1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=16;fillColor=#dae8fc;strokeColor=#6c8ebf;swimlane;startSize=40;fillColor=#f5f5f5;strokeColor=#666666;fontStyle=1;container=1;pointerEvents=0;collapsible=0;">
           <mxGeometry x="40" y="180" width="1020" height="820" as="geometry" />
         </mxCell>
-        <mxCell id="blocking" value="scheduler_server&lt;br&gt;blocking: one request per connection" vertex="1" parent="server" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=16;fillColor=#dae8fc;strokeColor=#6c8ebf;">
+        <mxCell id="blocking" value="&lt;b&gt;scheduler_server&lt;/b&gt;&lt;br&gt;阻塞式逐连接处理 · 每连接一条请求" vertex="1" parent="server" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=16;fillColor=#dae8fc;strokeColor=#6c8ebf;" data-model-id="blocking" data-kind="module" data-properties="{}" data-source-properties="{}" data-source-label="&lt;b&gt;scheduler_server&lt;/b&gt;&lt;br&gt;阻塞式逐连接处理 · 每连接一条请求" data-provenance="{&quot;path&quot;:&quot;apps/scheduler_server.cpp&quot;}">
           <mxGeometry x="40" y="70" width="380" height="80" as="geometry" />
         </mxCell>
-        <mxCell id="epoll" value="scheduler_server_epoll / EpollServer&lt;br&gt;single-threaded LT: buffered connections" vertex="1" parent="server" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=16;fillColor=#dae8fc;strokeColor=#6c8ebf;">
+        <mxCell id="epoll" value="&lt;b&gt;scheduler_server_epoll / EpollServer&lt;/b&gt;&lt;br&gt;单线程 LT · 非阻塞 · 连接输入 / 输出缓冲" vertex="1" parent="server" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=16;fillColor=#dae8fc;strokeColor=#6c8ebf;" data-model-id="epoll" data-kind="module" data-properties="{}" data-source-properties="{}" data-source-label="&lt;b&gt;scheduler_server_epoll / EpollServer&lt;/b&gt;&lt;br&gt;单线程 LT · 非阻塞 · 连接输入 / 输出缓冲" data-provenance="{&quot;path&quot;:&quot;include/net/epoll_server.h&quot;}">
           <mxGeometry x="600" y="70" width="380" height="80" as="geometry" />
         </mxCell>
-        <mxCell id="protocol" value="processSchedulerRequest()&lt;br&gt;parse / validate / dispatch commands" vertex="1" parent="server" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=16;fillColor=#dae8fc;strokeColor=#6c8ebf;">
+        <mxCell id="protocol" value="&lt;b&gt;processSchedulerRequest()&lt;/b&gt;&lt;br&gt;注册 / 提交 / 调度 / FETCH_JOB / 完成" vertex="1" parent="server" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=16;fillColor=#dae8fc;strokeColor=#6c8ebf;fillColor=#ffe6cc;strokeColor=#d79b00;" data-model-id="protocol" data-kind="module" data-properties="{}" data-source-properties="{}" data-source-label="&lt;b&gt;processSchedulerRequest()&lt;/b&gt;&lt;br&gt;注册 / 提交 / 调度 / FETCH_JOB / 完成" data-provenance="{&quot;path&quot;:&quot;src/protocol/scheduler_protocol.cpp&quot;}">
           <mxGeometry x="260" y="240" width="500" height="80" as="geometry" />
         </mxCell>
-        <mxCell id="core" value="Scheduler (mutex)&lt;br&gt;FirstFit / BinPack / LeastAllocated" vertex="1" parent="server" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=16;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;">
+        <mxCell id="core" value="&lt;b&gt;Scheduler · mutex 保护资源记账&lt;/b&gt;&lt;br&gt;FirstFit / BinPack / LeastAllocated&lt;br&gt;网络入口默认 FirstFit" vertex="1" parent="server" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=16;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;" data-model-id="core" data-kind="module" data-properties="{}" data-source-properties="{}" data-source-label="&lt;b&gt;Scheduler · mutex 保护资源记账&lt;/b&gt;&lt;br&gt;FirstFit / BinPack / LeastAllocated&lt;br&gt;网络入口默认 FirstFit" data-provenance="{&quot;path&quot;:&quot;include/core/scheduler.h&quot;}">
           <mxGeometry x="260" y="400" width="500" height="90" as="geometry" />
         </mxCell>
-        <mxCell id="jobs" value="Job&lt;br&gt;FIFO waiting queue&lt;br&gt;running job records" vertex="1" parent="server" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=16;fillColor=#dae8fc;strokeColor=#6c8ebf;">
+        <mxCell id="jobs" value="&lt;b&gt;Job 状态&lt;/b&gt;&lt;br&gt;FIFO 等待队列&lt;br&gt;runningJobs_ 运行 / 预留记录" vertex="1" parent="server" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=16;fillColor=#dae8fc;strokeColor=#6c8ebf;fillColor=#fff2cc;strokeColor=#d6b656;" data-model-id="jobs" data-kind="module" data-properties="{}" data-source-properties="{}" data-source-label="&lt;b&gt;Job 状态&lt;/b&gt;&lt;br&gt;FIFO 等待队列&lt;br&gt;runningJobs_ 运行 / 预留记录" data-provenance="{&quot;path&quot;:&quot;include/core/job.h&quot;}">
           <mxGeometry x="40" y="590" width="280" height="100" as="geometry" />
         </mxCell>
-        <mxCell id="dispatch" value="pendingDispatches_&lt;br&gt;per-worker job IDs&lt;br&gt;consumed once on FETCH_JOB" vertex="1" parent="server" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=16;fillColor=#dae8fc;strokeColor=#6c8ebf;">
+        <mxCell id="dispatch" value="&lt;b&gt;pendingDispatches_&lt;/b&gt;&lt;br&gt;按 Worker 保存待领取 Job ID&lt;br&gt;领取一次即移除派发记录" vertex="1" parent="server" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=16;fillColor=#dae8fc;strokeColor=#6c8ebf;fillColor=#fff2cc;strokeColor=#d6b656;" data-model-id="dispatch" data-kind="module" data-properties="{}" data-source-properties="{}" data-source-label="&lt;b&gt;pendingDispatches_&lt;/b&gt;&lt;br&gt;按 Worker 保存待领取 Job ID&lt;br&gt;领取一次即移除派发记录" data-provenance="{&quot;path&quot;:&quot;src/core/scheduler.cpp&quot;}">
           <mxGeometry x="370" y="590" width="280" height="100" as="geometry" />
         </mxCell>
-        <mxCell id="workers" value="Worker&lt;br&gt;total / available resources" vertex="1" parent="server" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=16;fillColor=#dae8fc;strokeColor=#6c8ebf;">
+        <mxCell id="workers" value="&lt;b&gt;Worker 资源状态&lt;/b&gt;&lt;br&gt;总资源 / 当前可用资源" vertex="1" parent="server" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=16;fillColor=#dae8fc;strokeColor=#6c8ebf;fillColor=#d5e8d4;strokeColor=#82b366;" data-model-id="workers" data-kind="module" data-properties="{}" data-source-properties="{}" data-source-label="&lt;b&gt;Worker 资源状态&lt;/b&gt;&lt;br&gt;总资源 / 当前可用资源" data-provenance="{&quot;path&quot;:&quot;include/core/worker.h&quot;}">
           <mxGeometry x="700" y="590" width="280" height="80" as="geometry" />
         </mxCell>
-        <mxCell id="resources" value="Resource&lt;br&gt;CPU cores / memory MB" vertex="1" parent="server" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=16;fillColor=#dae8fc;strokeColor=#6c8ebf;">
+        <mxCell id="resources" value="&lt;b&gt;Resource&lt;/b&gt;&lt;br&gt;CPU 核数 / memoryMB" vertex="1" parent="server" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=16;fillColor=#dae8fc;strokeColor=#6c8ebf;fillColor=#d5e8d4;strokeColor=#82b366;" data-model-id="resources" data-kind="module" data-properties="{}" data-source-properties="{}" data-source-label="&lt;b&gt;Resource&lt;/b&gt;&lt;br&gt;CPU 核数 / memoryMB" data-provenance="{&quot;path&quot;:&quot;include/core/resource.h&quot;}">
           <mxGeometry x="700" y="730" width="280" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="note" value="Each server process owns its Scheduler. Worker execution is simulated (500 ms)." vertex="1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=16;fillColor=#dae8fc;strokeColor=#6c8ebf;fillColor=none;strokeColor=none;fontSize=15;">
+        <mxCell id="note" value="每个服务端进程拥有独立 Scheduler；Worker 使用短连接轮询，500 ms 休眠模拟执行。" vertex="1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Microsoft YaHei;fontSize=16;fillColor=#dae8fc;strokeColor=#6c8ebf;fillColor=none;strokeColor=none;fontSize=15;" data-model-id="note" data-kind="module" data-properties="{}" data-source-properties="{}" data-source-label="每个服务端进程拥有独立 Scheduler；Worker 使用短连接轮询，500 ms 休眠模拟执行。" data-provenance="{&quot;path&quot;:&quot;apps/worker_client.cpp&quot;}">
           <mxGeometry x="100" y="1030" width="900" height="40" as="geometry" />
         </mxCell>
-        <mxCell id="tcp-blocking" source="clients" target="blocking" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endSize=8;strokeColor=#52677f;exitX=0.25;exitY=1;entryX=0.5;entryY=0;">
+        <mxCell id="tcp-blocking" source="clients" target="blocking" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endSize=8;strokeColor=#52677f;exitX=0.25;exitY=1;entryX=0.5;entryY=0;" data-properties="{}" data-source-properties="{}" data-source-label="">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="tcp-epoll" source="clients" target="epoll" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endSize=8;strokeColor=#52677f;exitX=0.75;exitY=1;entryX=0.5;entryY=0;">
+        <mxCell id="tcp-epoll" source="clients" target="epoll" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endSize=8;strokeColor=#52677f;exitX=0.75;exitY=1;entryX=0.5;entryY=0;" data-properties="{}" data-source-properties="{}" data-source-label="">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="blocking-handler" source="blocking" target="protocol" edge="1" parent="server" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endSize=8;strokeColor=#52677f;exitX=0.5;exitY=1;entryX=0.25;entryY=0;">
+        <mxCell id="blocking-handler" source="blocking" target="protocol" edge="1" parent="server" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endSize=8;strokeColor=#52677f;exitX=0.5;exitY=1;entryX=0.25;entryY=0;" data-properties="{}" data-source-properties="{}" data-source-label="">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="epoll-handler" source="epoll" target="protocol" edge="1" parent="server" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endSize=8;strokeColor=#52677f;exitX=0.5;exitY=1;entryX=0.75;entryY=0;">
+        <mxCell id="epoll-handler" source="epoll" target="protocol" edge="1" parent="server" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endSize=8;strokeColor=#52677f;exitX=0.5;exitY=1;entryX=0.75;entryY=0;" data-properties="{}" data-source-properties="{}" data-source-label="">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="handler-core" source="protocol" target="core" edge="1" parent="server" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endSize=8;strokeColor=#52677f;exitX=0.5;exitY=1;entryX=0.5;entryY=0;">
+        <mxCell id="handler-core" source="protocol" target="core" edge="1" parent="server" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endSize=8;strokeColor=#52677f;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" data-properties="{}" data-source-properties="{}" data-source-label="">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="core-jobs" source="core" target="jobs" edge="1" parent="server" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endSize=8;strokeColor=#52677f;exitX=0.15;exitY=1;entryX=0.5;entryY=0;">
+        <mxCell id="core-jobs" source="core" target="jobs" edge="1" parent="server" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endSize=8;strokeColor=#52677f;exitX=0.15;exitY=1;entryX=0.5;entryY=0;" data-properties="{}" data-source-properties="{}" data-source-label="">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="core-dispatch" source="core" target="dispatch" edge="1" parent="server" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endSize=8;strokeColor=#52677f;exitX=0.5;exitY=1;entryX=0.5;entryY=0;">
+        <mxCell id="core-dispatch" source="core" target="dispatch" edge="1" parent="server" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endSize=8;strokeColor=#52677f;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" data-properties="{}" data-source-properties="{}" data-source-label="">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="core-workers" source="core" target="workers" edge="1" parent="server" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endSize=8;strokeColor=#52677f;exitX=0.85;exitY=1;entryX=0.5;entryY=0;">
+        <mxCell id="core-workers" source="core" target="workers" edge="1" parent="server" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endSize=8;strokeColor=#52677f;exitX=0.85;exitY=1;entryX=0.5;entryY=0;" data-properties="{}" data-source-properties="{}" data-source-label="">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="worker-resource" source="workers" target="resources" edge="1" parent="server" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endSize=8;strokeColor=#52677f;exitX=0.5;exitY=1;entryX=0.5;entryY=0;">
+        <mxCell id="worker-resource" source="workers" target="resources" edge="1" parent="server" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endSize=8;strokeColor=#52677f;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" data-properties="{}" data-source-properties="{}" data-source-label="">
           <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell data-kind="annotation" id="overview-legend" value="&lt;font color=&quot;#6c8ebf&quot;&gt;■&lt;/font&gt; 控制逻辑　 &lt;font color=&quot;#d79b00&quot;&gt;■&lt;/font&gt; 协议　 &lt;font color=&quot;#d6b656&quot;&gt;■&lt;/font&gt; Job 状态　 &lt;font color=&quot;#82b366&quot;&gt;■&lt;/font&gt; CPU / 内存资源" vertex="1" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#243247;fontSize=15;">
+          <mxGeometry x="70" y="1100" width="980" height="40" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="worker-lifecycle" name="02 Worker 任务生命周期">
+    <mxGraphModel dx="800" dy="600" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1900" pageHeight="1600" math="0" shadow="0" background="#ffffff">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="job-submitter" value="job_client" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;size=52;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#243247;" vertex="1" parent="1">
+          <mxGeometry x="40" y="180.0" width="220" height="1185" as="geometry" />
+        </mxCell>
+        <mxCell id="worker-process" value="worker_client" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;size=52;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#243247;" vertex="1" parent="1">
+          <mxGeometry x="470" y="180.0" width="220" height="1185" as="geometry" />
+        </mxCell>
+        <mxCell id="tcp-protocol" value="TCP 入口 + protocol" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;size=52;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#243247;" vertex="1" parent="1">
+          <mxGeometry x="900" y="180.0" width="220" height="1185" as="geometry" />
+        </mxCell>
+        <mxCell id="scheduler-state" value="Scheduler" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;size=52;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#243247;" vertex="1" parent="1">
+          <mxGeometry x="1330" y="180.0" width="220" height="1185" as="geometry" />
+        </mxCell>
+        <mxCell id="act0" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;outlineConnect=0;fillColor=#ffffff;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#243247;" vertex="1" parent="scheduler-state">
+          <mxGeometry x="105" y="145" width="10" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="act1" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;outlineConnect=0;fillColor=#ffffff;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#243247;" vertex="1" parent="tcp-protocol">
+          <mxGeometry x="105" y="90" width="10" height="165" as="geometry" />
+        </mxCell>
+        <mxCell id="act2" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;outlineConnect=0;fillColor=#ffffff;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#243247;" vertex="1" parent="scheduler-state">
+          <mxGeometry x="105" y="365" width="10" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="act3" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;outlineConnect=0;fillColor=#ffffff;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#243247;" vertex="1" parent="tcp-protocol">
+          <mxGeometry x="105" y="310" width="10" height="165" as="geometry" />
+        </mxCell>
+        <mxCell id="act4" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;outlineConnect=0;fillColor=#ffffff;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#243247;" vertex="1" parent="scheduler-state">
+          <mxGeometry x="105" y="585" width="10" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="act5" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;outlineConnect=0;fillColor=#ffffff;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#243247;" vertex="1" parent="tcp-protocol">
+          <mxGeometry x="105" y="530" width="10" height="250" as="geometry" />
+        </mxCell>
+        <mxCell id="act6" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;outlineConnect=0;fillColor=#ffffff;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#243247;" vertex="1" parent="scheduler-state">
+          <mxGeometry x="105" y="980" width="10" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="act7" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;outlineConnect=0;fillColor=#ffffff;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#243247;" vertex="1" parent="tcp-protocol">
+          <mxGeometry x="105" y="925" width="10" height="165" as="geometry" />
+        </mxCell>
+        <mxCell id="m0" value="REGISTER_WORKER 1 4 8192" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;exitX=0.5;exitY=0.0759;entryX=0;entryY=0.0;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#243247;fontSize=15;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="worker-process" target="act1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="m1" value="addWorker(worker)" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;exitX=1;exitY=0.3333;entryX=0;entryY=0.0;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#243247;fontSize=15;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="act1" target="act0">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="m2" value="登记资源成功" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;curved=0;rounded=0;strokeColor=#999999;fontColor=#999999;exitX=0;exitY=1.0;entryX=1;entryY=0.6667;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#243247;fontSize=15;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="act0" target="act1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="m3" value="REGISTER_OK" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;curved=0;rounded=0;strokeColor=#999999;fontColor=#999999;exitX=0;exitY=1.0;entryX=0.5;entryY=0.2152;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#243247;fontSize=15;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="act1" target="worker-process">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="m4" value="SUBMIT_JOB 101 2 1024" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;exitX=0.5;exitY=0.2616;entryX=0;entryY=0.0;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#243247;fontSize=15;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="job-submitter" target="act3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="m5" value="submitJob(job) → FIFO" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;exitX=1;exitY=0.3333;entryX=0;entryY=0.0;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#243247;fontSize=15;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="act3" target="act2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="m6" value="入队成功" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;curved=0;rounded=0;strokeColor=#999999;fontColor=#999999;exitX=0;exitY=1.0;entryX=1;entryY=0.6667;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#243247;fontSize=15;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="act2" target="act3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="m7" value="SUBMIT_OK" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;curved=0;rounded=0;strokeColor=#999999;fontColor=#999999;exitX=0;exitY=1.0;entryX=0.5;entryY=0.4008;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#243247;fontSize=15;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="act3" target="job-submitter">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="m8" value="FETCH_JOB 1" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;exitX=0.5;exitY=0.4473;entryX=0;entryY=0.0;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#243247;fontSize=15;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="worker-process" target="act5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="m9" value="fetchJob(1)" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;exitX=1;exitY=0.22;entryX=0;entryY=0.0;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#243247;fontSize=15;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="act5" target="act4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="note10" value="先取本 Worker 待派发任务；否则全局调度一次后再取。调度时预留资源并登记运行记录。" style="shape=note;whiteSpace=wrap;html=1;size=14;fillColor=#fff2cc;strokeColor=#d6b656;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#243247;" vertex="1" parent="1">
+          <mxGeometry x="1460" y="800.0" width="338" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="m11" value="Assigned Job 101（领取不再扣资源）" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;curved=0;rounded=0;strokeColor=#999999;fontColor=#999999;exitX=0;exitY=1.0;entryX=1;entryY=0.78;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#243247;fontSize=15;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="act4" target="act5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="m12" value="RUN_JOB 101 2 1024" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;curved=0;rounded=0;strokeColor=#999999;fontColor=#999999;exitX=0;exitY=1.0;entryX=0.5;entryY=0.6582;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#243247;fontSize=15;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="act5" target="worker-process">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="m13" value="sleep_for(500 ms) 模拟执行" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;exitX=0.5;exitY=0.7046;entryX=0.5;entryY=0.73;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#243247;fontSize=15;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="worker-process" target="worker-process">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="640" y="1015.0" />
+              <mxPoint x="640" y="1045.0" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m14" value="COMPLETE_JOB 101" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;exitX=0.5;exitY=0.7806;entryX=0;entryY=0.0;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#243247;fontSize=15;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="worker-process" target="act7">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="m15" value="completeJob(101) → release()" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;exitX=1;exitY=0.3333;entryX=0;entryY=0.0;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#243247;fontSize=15;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="act7" target="act6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="m16" value="清理运行 / 派发记录，恢复资源" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;curved=0;rounded=0;strokeColor=#999999;fontColor=#999999;exitX=0;exitY=1.0;entryX=1;entryY=0.6667;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#243247;fontSize=15;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="act6" target="act7">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="m17" value="COMPLETE_OK" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;curved=0;rounded=0;strokeColor=#999999;fontColor=#999999;exitX=0;exitY=1.0;entryX=0.5;entryY=0.9198;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#243247;fontSize=15;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="act7" target="worker-process">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell data-kind="annotation" id="sequence-title" value="&lt;b&gt;HeteroSched · Worker 注册、领取与完成&lt;/b&gt;" vertex="1" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#243247;fontSize=30;">
+          <mxGeometry x="60" y="30" width="1760" height="60" as="geometry" />
+        </mxCell>
+        <mxCell data-kind="annotation" id="sequence-subtitle" value="成功路径示例 · Worker 每次请求使用独立短连接 · 资源预留与领取在同一把 Scheduler mutex 下记账" vertex="1" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#243247;fontSize=16;">
+          <mxGeometry x="60" y="100" width="1760" height="45" as="geometry" />
+        </mxCell>
+        <mxCell data-kind="annotation" id="sequence-limit" value="&lt;b&gt;边界与失败&lt;/b&gt;　NO_JOB 时 Worker 等待 1 秒再领取；一次全局调度也可能把任务分给其他 Worker。&lt;br&gt;资源预留不等于已经执行；响应丢失 / Worker 崩溃不自动回滚，不保证端到端 exactly-once。" vertex="1" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#243247;fontSize=16;">
+          <mxGeometry x="60" y="1470" width="1760" height="85" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="epoll-detail" name="03 LT epoll 连接处理">
+    <mxGraphModel dx="800" dy="600" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1680" pageHeight="1240" math="0" shadow="0" background="#ffffff">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell data-kind="annotation" id="epoll-detail-title" value="&lt;b&gt;HeteroSched · LT epoll 连接与字节流&lt;/b&gt;" vertex="1" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#243247;fontSize=30;">
+          <mxGeometry x="60" y="35" width="1560" height="60" as="geometry" />
+        </mxCell>
+        <mxCell data-kind="annotation" id="epoll-detail-subtitle" value="单线程事件循环 · 非阻塞 socket · 业务同步执行 · LT 公平性预算" vertex="1" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#243247;fontSize=16;">
+          <mxGeometry x="60" y="110" width="1560" height="45" as="geometry" />
+        </mxCell>
+        <mxCell data-kind="annotation" id="epoll-backpressure" value="&lt;b&gt;输出背压&lt;/b&gt;&lt;br&gt;待发数据达到 64 KiB 高水位时，&lt;br&gt;暂停读入与解析；写出后恢复。&lt;br&gt;高水位不是全局内存硬上限。" vertex="1" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#243247;fontSize=16;">
+          <mxGeometry x="530" y="850" width="330" height="180" as="geometry" />
+        </mxCell>
+        <mxCell data-kind="annotation" id="epoll-options" value="图示为读入到响应的简化路径；EPOLLOUT 可直接继续写。RDHUP 后仍需读完剩余数据并尝试发送响应。&lt;br&gt;可选 idle timeout / max connections 默认关闭。" vertex="1" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#243247;fontSize=15;">
+          <mxGeometry x="60" y="1100" width="1550" height="65" as="geometry" />
+        </mxCell>
+        <mxCell data-kind="annotation" id="epoll-detail-legend" value="&lt;font color=&quot;#6c8ebf&quot;&gt;■&lt;/font&gt; I/O 控制　 &lt;font color=&quot;#d79b00&quot;&gt;■&lt;/font&gt; 协议业务　 &lt;font color=&quot;#d6b656&quot;&gt;■&lt;/font&gt; 待发响应　 &lt;font color=&quot;#82b366&quot;&gt;■&lt;/font&gt; 连接状态" vertex="1" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#243247;fontSize=15;">
+          <mxGeometry x="60" y="1185" width="1560" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="epoll-detail--event-wait" value="&lt;b&gt;LT 事件循环&lt;/b&gt;&lt;br&gt;&lt;br&gt;epoll_wait() → pollOnce()&lt;br&gt;token = 0：监听 socket&lt;br&gt;其余 token：查找连接状态" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;spacing=14;strokeWidth=1.5;fillColor=#dae8fc;strokeColor=#6c8ebf;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#243247;" vertex="1" parent="1" data-model-id="event-wait" data-kind="module" data-properties="{&quot;role&quot;:&quot;control&quot;,&quot;status&quot;:&quot;implemented&quot;}" data-source-properties="{&quot;role&quot;:&quot;control&quot;,&quot;status&quot;:&quot;implemented&quot;}" data-source-label="&lt;b&gt;LT 事件循环&lt;/b&gt;&lt;br&gt;&lt;br&gt;epoll_wait() → pollOnce()&lt;br&gt;token = 0：监听 socket&lt;br&gt;其余 token：查找连接状态" data-provenance="{&quot;path&quot;:&quot;src/net/epoll_server.cpp&quot;,&quot;line&quot;:226}">
+          <mxGeometry x="80" y="240" width="300" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="epoll-detail--accept-ready" value="&lt;b&gt;acceptReady()&lt;/b&gt;&lt;br&gt;&lt;br&gt;accept4(NONBLOCK | CLOEXEC)&lt;br&gt;注册 EPOLLIN | EPOLLRDHUP&lt;br&gt;每轮最多 accept 64 次" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;spacing=14;strokeWidth=1.5;fillColor=#dae8fc;strokeColor=#6c8ebf;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#243247;" vertex="1" parent="1" data-model-id="accept-ready" data-kind="module" data-properties="{&quot;role&quot;:&quot;control&quot;,&quot;status&quot;:&quot;implemented&quot;}" data-source-properties="{&quot;role&quot;:&quot;control&quot;,&quot;status&quot;:&quot;implemented&quot;}" data-source-label="&lt;b&gt;acceptReady()&lt;/b&gt;&lt;br&gt;&lt;br&gt;accept4(NONBLOCK | CLOEXEC)&lt;br&gt;注册 EPOLLIN | EPOLLRDHUP&lt;br&gt;每轮最多 accept 64 次" data-provenance="{&quot;path&quot;:&quot;src/net/epoll_server.cpp&quot;,&quot;line&quot;:66}">
+          <mxGeometry x="80" y="510" width="300" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="epoll-detail--connection-state" value="&lt;b&gt;每连接 Connection 状态&lt;/b&gt;&lt;br&gt;&lt;br&gt;connections_：token → Connection&lt;br&gt;UniqueFd / input / output&lt;br&gt;outputOffset / interests&lt;br&gt;readClosed / closing / lastActivity&lt;br&gt;递增 token 避免旧事件误用复用 fd" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;spacing=14;strokeWidth=1.5;fillColor=#d5e8d4;strokeColor=#82b366;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#243247;" vertex="1" parent="1" data-model-id="connection-state" data-kind="module" data-properties="{&quot;role&quot;:&quot;state&quot;,&quot;status&quot;:&quot;implemented&quot;}" data-source-properties="{&quot;role&quot;:&quot;state&quot;,&quot;status&quot;:&quot;implemented&quot;}" data-source-label="&lt;b&gt;每连接 Connection 状态&lt;/b&gt;&lt;br&gt;&lt;br&gt;connections_：token → Connection&lt;br&gt;UniqueFd / input / output&lt;br&gt;outputOffset / interests&lt;br&gt;readClosed / closing / lastActivity&lt;br&gt;递增 token 避免旧事件误用复用 fd" data-provenance="{&quot;path&quot;:&quot;include/net/epoll_server.h&quot;,&quot;line&quot;:31}">
+          <mxGeometry x="80" y="820" width="420" height="230" as="geometry" />
+        </mxCell>
+        <mxCell id="epoll-detail--read-ready" value="&lt;b&gt;service() / readReady()&lt;/b&gt;&lt;br&gt;&lt;br&gt;有读事件时 recv() → input&lt;br&gt;EAGAIN / EOF / 预算控制&lt;br&gt;每轮读预算 64 KiB" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;spacing=14;strokeWidth=1.5;fillColor=#dae8fc;strokeColor=#6c8ebf;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#243247;" vertex="1" parent="1" data-model-id="read-ready" data-kind="module" data-properties="{&quot;role&quot;:&quot;control&quot;,&quot;status&quot;:&quot;implemented&quot;}" data-source-properties="{&quot;role&quot;:&quot;control&quot;,&quot;status&quot;:&quot;implemented&quot;}" data-source-label="&lt;b&gt;service() / readReady()&lt;/b&gt;&lt;br&gt;&lt;br&gt;有读事件时 recv() → input&lt;br&gt;EAGAIN / EOF / 预算控制&lt;br&gt;每轮读预算 64 KiB" data-provenance="{&quot;path&quot;:&quot;src/net/epoll_server.cpp&quot;,&quot;line&quot;:115}">
+          <mxGeometry x="520" y="240" width="300" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="epoll-detail--process-input" value="&lt;b&gt;processInput()&lt;/b&gt;&lt;br&gt;&lt;br&gt;按换行提取完整请求&lt;br&gt;保留半包 · 支持连续多行&lt;br&gt;正文最多 128 字节" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;spacing=14;strokeWidth=1.5;fillColor=#dae8fc;strokeColor=#6c8ebf;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#243247;" vertex="1" parent="1" data-model-id="process-input" data-kind="module" data-properties="{&quot;role&quot;:&quot;control&quot;,&quot;status&quot;:&quot;implemented&quot;}" data-source-properties="{&quot;role&quot;:&quot;control&quot;,&quot;status&quot;:&quot;implemented&quot;}" data-source-label="&lt;b&gt;processInput()&lt;/b&gt;&lt;br&gt;&lt;br&gt;按换行提取完整请求&lt;br&gt;保留半包 · 支持连续多行&lt;br&gt;正文最多 128 字节" data-provenance="{&quot;path&quot;:&quot;src/net/epoll_server.cpp&quot;,&quot;line&quot;:91}">
+          <mxGeometry x="960" y="240" width="300" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="epoll-detail--request-handler" value="&lt;b&gt;handler(line)&lt;/b&gt;&lt;br&gt;&lt;br&gt;processSchedulerRequest()&lt;br&gt;同步调用 Scheduler&lt;br&gt;返回带换行的响应" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;spacing=14;strokeWidth=1.5;fillColor=#ffe6cc;strokeColor=#d79b00;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#243247;" vertex="1" parent="1" data-model-id="request-handler" data-kind="module" data-properties="{&quot;role&quot;:&quot;protocol&quot;,&quot;status&quot;:&quot;implemented&quot;}" data-source-properties="{&quot;role&quot;:&quot;protocol&quot;,&quot;status&quot;:&quot;implemented&quot;}" data-source-label="&lt;b&gt;handler(line)&lt;/b&gt;&lt;br&gt;&lt;br&gt;processSchedulerRequest()&lt;br&gt;同步调用 Scheduler&lt;br&gt;返回带换行的响应" data-provenance="{&quot;path&quot;:&quot;apps/scheduler_server_epoll.cpp&quot;,&quot;line&quot;:14}">
+          <mxGeometry x="1330" y="240" width="270" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="epoll-detail--output-buffer" value="&lt;b&gt;积累响应&lt;/b&gt;&lt;br&gt;&lt;br&gt;output += handler_(line)&lt;br&gt;pending = size − offset&lt;br&gt;按请求顺序保留待发数据" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;spacing=14;strokeWidth=1.5;fillColor=#fff2cc;strokeColor=#d6b656;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#243247;" vertex="1" parent="1" data-model-id="output-buffer" data-kind="module" data-properties="{&quot;role&quot;:&quot;queue&quot;,&quot;status&quot;:&quot;implemented&quot;}" data-source-properties="{&quot;role&quot;:&quot;queue&quot;,&quot;status&quot;:&quot;implemented&quot;}" data-source-label="&lt;b&gt;积累响应&lt;/b&gt;&lt;br&gt;&lt;br&gt;output += handler_(line)&lt;br&gt;pending = size − offset&lt;br&gt;按请求顺序保留待发数据" data-provenance="{&quot;path&quot;:&quot;src/net/epoll_server.cpp&quot;,&quot;line&quot;:111}">
+          <mxGeometry x="1330" y="540" width="270" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="epoll-detail--write-ready" value="&lt;b&gt;writeReady()&lt;/b&gt;&lt;br&gt;&lt;br&gt;部分写推进 outputOffset&lt;br&gt;EAGAIN 时保留未发送数据&lt;br&gt;每轮写预算 64 KiB" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;spacing=14;strokeWidth=1.5;fillColor=#dae8fc;strokeColor=#6c8ebf;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#243247;" vertex="1" parent="1" data-model-id="write-ready" data-kind="module" data-properties="{&quot;role&quot;:&quot;control&quot;,&quot;status&quot;:&quot;implemented&quot;}" data-source-properties="{&quot;role&quot;:&quot;control&quot;,&quot;status&quot;:&quot;implemented&quot;}" data-source-label="&lt;b&gt;writeReady()&lt;/b&gt;&lt;br&gt;&lt;br&gt;部分写推进 outputOffset&lt;br&gt;EAGAIN 时保留未发送数据&lt;br&gt;每轮写预算 64 KiB" data-provenance="{&quot;path&quot;:&quot;src/net/epoll_server.cpp&quot;,&quot;line&quot;:139}">
+          <mxGeometry x="960" y="540" width="300" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="epoll-detail--update-interests" value="&lt;b&gt;更新事件 / 清理判定&lt;/b&gt;&lt;br&gt;&lt;br&gt;仅有待发数据时启用 EPOLLOUT&lt;br&gt;积压到高水位时暂停 EPOLLIN&lt;br&gt;写出腾出空间后继续解析" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;spacing=14;strokeWidth=1.5;fillColor=#dae8fc;strokeColor=#6c8ebf;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#243247;" vertex="1" parent="1" data-model-id="update-interests" data-kind="module" data-properties="{&quot;role&quot;:&quot;control&quot;,&quot;status&quot;:&quot;implemented&quot;}" data-source-properties="{&quot;role&quot;:&quot;control&quot;,&quot;status&quot;:&quot;implemented&quot;}" data-source-label="&lt;b&gt;更新事件 / 清理判定&lt;/b&gt;&lt;br&gt;&lt;br&gt;仅有待发数据时启用 EPOLLOUT&lt;br&gt;积压到高水位时暂停 EPOLLIN&lt;br&gt;写出腾出空间后继续解析" data-provenance="{&quot;path&quot;:&quot;src/net/epoll_server.cpp&quot;,&quot;line&quot;:177}">
+          <mxGeometry x="520" y="540" width="300" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="epoll-detail--close-connection" value="&lt;b&gt;closeConnection(token)&lt;/b&gt;&lt;br&gt;&lt;br&gt;错误或关闭条件满足时清理&lt;br&gt;epoll_ctl(DEL) → erase 状态&lt;br&gt;UniqueFd 自动关闭 socket&lt;br&gt;EOF / 非法帧按条件排空响应" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;spacing=14;strokeWidth=1.5;fillColor=#f5f5f5;strokeColor=#666666;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#243247;" vertex="1" parent="1" data-model-id="close-connection" data-kind="module" data-properties="{&quot;role&quot;:&quot;neutral&quot;,&quot;status&quot;:&quot;implemented&quot;}" data-source-properties="{&quot;role&quot;:&quot;neutral&quot;,&quot;status&quot;:&quot;implemented&quot;}" data-source-label="&lt;b&gt;closeConnection(token)&lt;/b&gt;&lt;br&gt;&lt;br&gt;错误或关闭条件满足时清理&lt;br&gt;epoll_ctl(DEL) → erase 状态&lt;br&gt;UniqueFd 自动关闭 socket&lt;br&gt;EOF / 非法帧按条件排空响应" data-provenance="{&quot;path&quot;:&quot;src/net/epoll_server.cpp&quot;,&quot;line&quot;:191}">
+          <mxGeometry x="960" y="870" width="300" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-epoll-detail-0" value="客户端事件" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;strokeColor=#59677a;strokeWidth=1.7;labelBackgroundColor=#ffffff;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#243247;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="epoll-detail--event-wait" target="epoll-detail--read-ready" data-model-id="event-read" data-kind="call" data-properties="{}" data-source-properties="{}" data-source-label="客户端事件">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint as="offset" x="0" y="-20" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-epoll-detail-1" value="监听可读" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;strokeColor=#59677a;strokeWidth=1.7;labelBackgroundColor=#ffffff;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#243247;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="epoll-detail--event-wait" target="epoll-detail--accept-ready" data-model-id="event-accept" data-kind="call" data-properties="{}" data-source-properties="{}" data-source-label="监听可读">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint as="offset" x="70" y="0" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-epoll-detail-2" value="登记连接" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;strokeColor=#59677a;strokeWidth=1.7;labelBackgroundColor=#ffffff;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#243247;exitX=0.5;exitY=1;entryX=0.35714285714285715;entryY=0;" edge="1" parent="1" source="epoll-detail--accept-ready" target="epoll-detail--connection-state" data-model-id="accept-state" data-kind="call" data-properties="{}" data-source-properties="{}" data-source-label="登记连接">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint as="offset" x="70" y="0" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-epoll-detail-3" value="积累字节" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;strokeColor=#59677a;strokeWidth=1.7;labelBackgroundColor=#ffffff;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#243247;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="epoll-detail--read-ready" target="epoll-detail--process-input" data-model-id="read-parse" data-kind="call" data-properties="{}" data-source-properties="{}" data-source-label="积累字节">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint as="offset" x="0" y="-20" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-epoll-detail-4" value="line" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;strokeColor=#59677a;strokeWidth=1.7;labelBackgroundColor=#ffffff;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#243247;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="epoll-detail--process-input" target="epoll-detail--request-handler" data-model-id="parse-handle" data-kind="call" data-properties="{}" data-source-properties="{}" data-source-label="line">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint as="offset" x="0" y="-20" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-epoll-detail-5" value="响应" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;strokeColor=#59677a;strokeWidth=1.7;labelBackgroundColor=#ffffff;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#243247;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="epoll-detail--request-handler" target="epoll-detail--output-buffer" data-model-id="handler-buffer" data-kind="call" data-properties="{}" data-source-properties="{}" data-source-label="响应">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint as="offset" x="45" y="0" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-epoll-detail-6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;strokeColor=#59677a;strokeWidth=1.7;labelBackgroundColor=#ffffff;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#243247;exitX=0;exitY=0.5;entryX=1;entryY=0.5;" edge="1" parent="1" source="epoll-detail--output-buffer" target="epoll-detail--write-ready" data-model-id="buffer-write" data-kind="call" data-properties="{}" data-source-properties="{}" data-source-label="">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint as="offset" x="0" y="-20" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-epoll-detail-7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;strokeColor=#59677a;strokeWidth=1.7;labelBackgroundColor=#ffffff;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#243247;exitX=0;exitY=0.5;entryX=1;entryY=0.5;" edge="1" parent="1" source="epoll-detail--write-ready" target="epoll-detail--update-interests" data-model-id="write-interests" data-kind="call" data-properties="{}" data-source-properties="{}" data-source-label="">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint as="offset" x="0" y="-20" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-epoll-detail-8" value="下一轮 LT" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;strokeColor=#59677a;strokeWidth=1.7;labelBackgroundColor=#ffffff;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#243247;exitX=0.25;exitY=0;entryX=0.8;entryY=1;" edge="1" parent="1" source="epoll-detail--update-interests" target="epoll-detail--event-wait" data-model-id="interests-wait" data-kind="call" data-properties="{}" data-source-properties="{}" data-source-label="下一轮 LT">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="595" y="450" />
+              <mxPoint x="320" y="450" />
+            </Array>
+            <mxPoint as="offset" x="0" y="-18" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-epoll-detail-9" value="失败 / 关闭条件" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;strokeColor=#59677a;strokeWidth=1.7;labelBackgroundColor=#ffffff;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#243247;exitX=0.8;exitY=1;entryX=0;entryY=0.5;" edge="1" parent="1" source="epoll-detail--update-interests" target="epoll-detail--close-connection" data-model-id="interests-close" data-kind="call" data-properties="{}" data-source-properties="{}" data-source-label="失败 / 关闭条件">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="760" y="780" />
+              <mxPoint x="880" y="780" />
+              <mxPoint x="880" y="960" />
+            </Array>
+            <mxPoint as="offset" x="-80" y="-25" />
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="modules" name="04 CMake 模块依赖">
+    <mxGraphModel dx="800" dy="600" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1680" pageHeight="1400" math="0" shadow="0" background="#ffffff">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell data-kind="annotation" id="modules-title" value="&lt;b&gt;HeteroSched · CMake 模块与链接依赖&lt;/b&gt;" vertex="1" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#243247;fontSize=30;">
+          <mxGeometry x="60" y="35" width="1560" height="60" as="geometry" />
+        </mxCell>
+        <mxCell data-kind="annotation" id="modules-subtitle" value="箭头表示 target_link_libraries 的依赖方向 · 3 个模块库 · 6 个应用入口" vertex="1" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#243247;fontSize=16;">
+          <mxGeometry x="60" y="110" width="1560" height="45" as="geometry" />
+        </mxCell>
+        <mxCell data-kind="annotation" id="module-boundary" value="core PUBLIC 链接 Threads::Threads；net 通过回调接入协议，不直接依赖 core / protocol。&lt;br&gt;CTest 共 11 项；TCP 对比工具与原始实验记录位于 benchmarks/，不与策略微基准混用。" vertex="1" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#243247;fontSize=16;">
+          <mxGeometry x="60" y="1250" width="1560" height="70" as="geometry" />
+        </mxCell>
+        <mxCell data-kind="annotation" id="modules-legend" value="&lt;font color=&quot;#6c8ebf&quot;&gt;■&lt;/font&gt; 应用　 &lt;font color=&quot;#d79b00&quot;&gt;■&lt;/font&gt; 协议库　 &lt;font color=&quot;#666666&quot;&gt;■&lt;/font&gt; 网络库　 &lt;font color=&quot;#82b366&quot;&gt;■&lt;/font&gt; 调度核心库" vertex="1" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#243247;fontSize=15;">
+          <mxGeometry x="60" y="1345" width="1560" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="modules--protocol-apps" value="&lt;b&gt;协议与网络调用方&lt;/b&gt;&lt;br&gt;&lt;br&gt;scheduler_server / scheduler_server_epoll&lt;br&gt;worker_client / scheduler_client&lt;br&gt;apps/ 下的独立可执行程序" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;spacing=14;strokeWidth=1.5;fillColor=#dae8fc;strokeColor=#6c8ebf;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#243247;" vertex="1" parent="1" data-model-id="protocol-apps" data-kind="module" data-properties="{&quot;role&quot;:&quot;control&quot;,&quot;status&quot;:&quot;implemented&quot;}" data-source-properties="{&quot;role&quot;:&quot;control&quot;,&quot;status&quot;:&quot;implemented&quot;}" data-source-label="&lt;b&gt;协议与网络调用方&lt;/b&gt;&lt;br&gt;&lt;br&gt;scheduler_server / scheduler_server_epoll&lt;br&gt;worker_client / scheduler_client&lt;br&gt;apps/ 下的独立可执行程序" data-provenance="{&quot;path&quot;:&quot;CMakeLists.txt&quot;}">
+          <mxGeometry x="180" y="260" width="480" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="modules--job-app" value="&lt;b&gt;Job 提交客户端&lt;/b&gt;&lt;br&gt;&lt;br&gt;job_client&lt;br&gt;拼接 SUBMIT_JOB 请求&lt;br&gt;通过短连接读取响应" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;spacing=14;strokeWidth=1.5;fillColor=#dae8fc;strokeColor=#6c8ebf;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#243247;" vertex="1" parent="1" data-model-id="job-app" data-kind="module" data-properties="{&quot;role&quot;:&quot;control&quot;,&quot;status&quot;:&quot;implemented&quot;}" data-source-properties="{&quot;role&quot;:&quot;control&quot;,&quot;status&quot;:&quot;implemented&quot;}" data-source-label="&lt;b&gt;Job 提交客户端&lt;/b&gt;&lt;br&gt;&lt;br&gt;job_client&lt;br&gt;拼接 SUBMIT_JOB 请求&lt;br&gt;通过短连接读取响应" data-provenance="{&quot;path&quot;:&quot;CMakeLists.txt&quot;}">
+          <mxGeometry x="1030" y="260" width="450" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="modules--protocol-lib" value="&lt;b&gt;heterosched_protocol&lt;/b&gt;&lt;br&gt;&lt;br&gt;src/protocol/ · include/protocol/&lt;br&gt;注册 / 提交 / 领取 / 完成 / 调度&lt;br&gt;请求分流与响应字段校验" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;spacing=14;strokeWidth=1.5;fillColor=#ffe6cc;strokeColor=#d79b00;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#243247;" vertex="1" parent="1" data-model-id="protocol-lib" data-kind="module" data-properties="{&quot;role&quot;:&quot;protocol&quot;,&quot;status&quot;:&quot;implemented&quot;}" data-source-properties="{&quot;role&quot;:&quot;protocol&quot;,&quot;status&quot;:&quot;implemented&quot;}" data-source-label="&lt;b&gt;heterosched_protocol&lt;/b&gt;&lt;br&gt;&lt;br&gt;src/protocol/ · include/protocol/&lt;br&gt;注册 / 提交 / 领取 / 完成 / 调度&lt;br&gt;请求分流与响应字段校验" data-provenance="{&quot;path&quot;:&quot;CMakeLists.txt&quot;,&quot;line&quot;:23}">
+          <mxGeometry x="180" y="650" width="480" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="modules--net-lib" value="&lt;b&gt;heterosched_net&lt;/b&gt;&lt;br&gt;&lt;br&gt;src/net/ · include/net/&lt;br&gt;阻塞 sendAll() / receiveLine()&lt;br&gt;EpollServer / UniqueFd&lt;br&gt;RequestHandler 注入业务处理" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;spacing=14;strokeWidth=1.5;fillColor=#f5f5f5;strokeColor=#666666;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#243247;" vertex="1" parent="1" data-model-id="net-lib" data-kind="module" data-properties="{&quot;role&quot;:&quot;neutral&quot;,&quot;status&quot;:&quot;implemented&quot;}" data-source-properties="{&quot;role&quot;:&quot;neutral&quot;,&quot;status&quot;:&quot;implemented&quot;}" data-source-label="&lt;b&gt;heterosched_net&lt;/b&gt;&lt;br&gt;&lt;br&gt;src/net/ · include/net/&lt;br&gt;阻塞 sendAll() / receiveLine()&lt;br&gt;EpollServer / UniqueFd&lt;br&gt;RequestHandler 注入业务处理" data-provenance="{&quot;path&quot;:&quot;CMakeLists.txt&quot;,&quot;line&quot;:20}">
+          <mxGeometry x="1030" y="650" width="450" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="modules--core-lib" value="&lt;b&gt;heterosched_core&lt;/b&gt;&lt;br&gt;&lt;br&gt;src/core/ · include/core/&lt;br&gt;Scheduler / Worker / Job / Resource&lt;br&gt;mutex · FIFO · 资源记账 · 派发记录&lt;br&gt;不依赖 socket 或 protocol" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;spacing=14;strokeWidth=1.5;fillColor=#d5e8d4;strokeColor=#82b366;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#243247;" vertex="1" parent="1" data-model-id="core-lib" data-kind="module" data-properties="{&quot;role&quot;:&quot;state&quot;,&quot;status&quot;:&quot;implemented&quot;}" data-source-properties="{&quot;role&quot;:&quot;state&quot;,&quot;status&quot;:&quot;implemented&quot;}" data-source-label="&lt;b&gt;heterosched_core&lt;/b&gt;&lt;br&gt;&lt;br&gt;src/core/ · include/core/&lt;br&gt;Scheduler / Worker / Job / Resource&lt;br&gt;mutex · FIFO · 资源记账 · 派发记录&lt;br&gt;不依赖 socket 或 protocol" data-provenance="{&quot;path&quot;:&quot;CMakeLists.txt&quot;,&quot;line&quot;:12}">
+          <mxGeometry x="180" y="1010" width="480" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="modules--local-tools" value="&lt;b&gt;单进程演示与策略 benchmark&lt;/b&gt;&lt;br&gt;&lt;br&gt;heterosched：线程模拟完成&lt;br&gt;scheduler_benchmark：三种策略&lt;br&gt;与 TCP 服务压测分开计量" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;spacing=14;strokeWidth=1.5;fillColor=#dae8fc;strokeColor=#6c8ebf;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#243247;" vertex="1" parent="1" data-model-id="local-tools" data-kind="module" data-properties="{&quot;role&quot;:&quot;control&quot;,&quot;status&quot;:&quot;implemented&quot;}" data-source-properties="{&quot;role&quot;:&quot;control&quot;,&quot;status&quot;:&quot;implemented&quot;}" data-source-label="&lt;b&gt;单进程演示与策略 benchmark&lt;/b&gt;&lt;br&gt;&lt;br&gt;heterosched：线程模拟完成&lt;br&gt;scheduler_benchmark：三种策略&lt;br&gt;与 TCP 服务压测分开计量" data-provenance="{&quot;path&quot;:&quot;CMakeLists.txt&quot;}">
+          <mxGeometry x="1030" y="1010" width="450" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-modules-0" value="链接" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;strokeColor=#59677a;strokeWidth=1.7;labelBackgroundColor=#ffffff;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#243247;exitX=0.25;exitY=1;entryX=0.25;entryY=0;" edge="1" parent="1" source="modules--protocol-apps" target="modules--protocol-lib" data-model-id="apps-protocol" data-kind="call" data-properties="{}" data-source-properties="{}" data-source-label="链接">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint as="offset" x="-40" y="0" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-modules-1" value="链接 net" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;strokeColor=#59677a;strokeWidth=1.7;labelBackgroundColor=#ffffff;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#243247;exitX=0.75;exitY=1;entryX=0.25;entryY=0;" edge="1" parent="1" source="modules--protocol-apps" target="modules--net-lib" data-model-id="apps-net" data-kind="call" data-properties="{}" data-source-properties="{}" data-source-label="链接 net">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="540" y="520" />
+              <mxPoint x="1142.5" y="520" />
+            </Array>
+            <mxPoint as="offset" x="0" y="-20" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-modules-2" value="链接" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;strokeColor=#59677a;strokeWidth=1.7;labelBackgroundColor=#ffffff;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#243247;exitX=0.75;exitY=1;entryX=0.75;entryY=0;" edge="1" parent="1" source="modules--job-app" target="modules--net-lib" data-model-id="job-net" data-kind="call" data-properties="{}" data-source-properties="{}" data-source-label="链接">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint as="offset" x="40" y="0" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-modules-3" value="PUBLIC 链接" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;strokeColor=#59677a;strokeWidth=1.7;labelBackgroundColor=#ffffff;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#243247;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="modules--protocol-lib" target="modules--core-lib" data-model-id="protocol-core" data-kind="call" data-properties="{}" data-source-properties="{}" data-source-label="PUBLIC 链接">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint as="offset" x="80" y="0" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-modules-4" value="链接 core" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;endFill=1;strokeColor=#59677a;strokeWidth=1.7;labelBackgroundColor=#ffffff;fontFamily=Microsoft YaHei;fontSize=16;fontColor=#243247;exitX=0;exitY=0.5;entryX=1;entryY=0.5;" edge="1" parent="1" source="modules--local-tools" target="modules--core-lib" data-model-id="local-core" data-kind="call" data-properties="{}" data-source-properties="{}" data-source-label="链接 core">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint as="offset" x="0" y="-20" />
+          </mxGeometry>
         </mxCell>
       </root>
     </mxGraphModel>
