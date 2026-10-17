@@ -1,0 +1,498 @@
+{
+  "schema_version": 1,
+  "configuration": {
+    "host": "127.0.0.1",
+    "requests": 100,
+    "warmup": 10,
+    "concurrency": [
+      10,
+      50,
+      100
+    ],
+    "repeat": 3,
+    "timeout_s": 0.2,
+    "quiet": true,
+    "backlog": 128,
+    "slow_clients": 1,
+    "recovery_probe_timeout_s": 1,
+    "reuse_address": true,
+    "fresh_process_per_run": true,
+    "request": "SCHEDULE_NEXT\n",
+    "expected_response": "SCHEDULE_NONE\n",
+    "request_bytes": 14,
+    "response_bytes": 14,
+    "command": [
+      "/usr/bin/python3",
+      "benchmarks/compare_tcp_servers.py",
+      "--build-dir",
+      "build",
+      "--requests",
+      "100",
+      "--warmup",
+      "10",
+      "--concurrency",
+      "10",
+      "50",
+      "100",
+      "--repeat",
+      "3",
+      "--timeout",
+      "0.2",
+      "--backlog",
+      "128",
+      "--slow-clients",
+      "1",
+      "--output-dir",
+      "benchmarks/results/final_review/one_slow"
+    ],
+    "port": 39963
+  },
+  "runner_sha256": "8db1e78bc09d50ec2c3e7d460ed199a695e68a1d395a45258d9e8fb8efc3df1f",
+  "slow_client_helper_sha256": "1d3291f33d1201f44db61f0ff8318ab2eeee9cafce2b602de17ccfce550f6d60",
+  "source_sha256": {
+    "apps/demo_main.cpp": "783206e96db39685ad0d87b5defe3a43cd550274b94b389a231675e54763d1d9",
+    "apps/job_client.cpp": "505259fae8bcf4f366f2ef8b152097dba3ccb4f918f9b792b1310a7afbf387aa",
+    "apps/scheduler_client.cpp": "b47d88a0b367cd268e3c52eeddc2f80f19f523768ccf0ac69a7186d18bf9ebd9",
+    "apps/scheduler_server.cpp": "369833b8f606c4fdd168eeb5f6f283bb505c6bd9bf03f86bb7727f61d8a2e235",
+    "apps/scheduler_server_epoll.cpp": "1a7db187a0e6881f25da21969fea6723eadae063df01ff87c816a1c56d387f8c",
+    "apps/server_logging.h": "4369634f93143ae025a370bbef27622dd9fd9cdf3f6298d007a89885cbcfca98",
+    "apps/server_options.h": "269a29123332f1ddf49d6930d72e41a2cbf16c52faaa1bee379721d86c793fc2",
+    "apps/worker_client.cpp": "f76aed7ef1ecc925f2c3cdfc0ab963409844028243525f0537e09b6c3e1f0c7b",
+    "include/core/job.h": "3e467fc434f31c2285d50f422f276453c95456836dd50188bf923ce1e39a23f3",
+    "include/core/resource.h": "7c79bae074ff179952dd983f7f7c299f0f6e3ad0eede77e16aa81f4f5ec87d4f",
+    "include/core/scheduler.h": "c93dfd5acbb5f536f9b62bc4b6844ebfb523b367ca432f774043cea7d39e4747",
+    "include/core/worker.h": "47dd0b65105faa69d9fd5bded44ad43bd83de87c50ec2bb24f659049a361c428",
+    "include/net/epoll_server.h": "2cfaadfd455c9162253531cbd8ed750062a849537f292b73c6a386ef147bf490",
+    "include/net/tcp_io.h": "46a208303ac82510e5956e59fa7114772e553577c218e2e26a6fe6a64bd76003",
+    "include/net/unique_fd.h": "ff158d4bf6259854c99ca212dbafbd2e1cc4e21ebcbffb865aa819dfba0c63eb",
+    "include/protocol/job_completion.h": "0d59e5fa03d2389fd11a1d7e98a71e4d8739075c5198f624d5fd00422fb361ae",
+    "include/protocol/job_submission.h": "587ec64ea314dbde42d1ee6a7bfd9d5f60e6dcbb42d92911a09544c1adec6883",
+    "include/protocol/registration.h": "531cf5a0b105ad86759429e020a7899b20f69e58f012089585bdb468a9acb587",
+    "include/protocol/scheduler_protocol.h": "471dbdf7715531c9b77757d8da2b28f958eedea24dc34887c7480116aca0d712",
+    "src/core/resource.cpp": "33449dba1369b859de2ef8e1ff981a692f2c1c49577c97c3160fb1161b64b25c",
+    "src/core/scheduler.cpp": "d2f13b03ed6180dcc9e5b87ce4c170f701cdfc613d63b2f32a3a9cfd5ee5195e",
+    "src/core/worker.cpp": "52548852964acb5ff14219fdfc8f7fbefe9236adac6b0322fe7c1db20a24a17b",
+    "src/net/epoll_server.cpp": "877761b86a59aa5490d983051ffdb6108d6c37a321edf3804e7be62c86f48be3",
+    "src/net/tcp_io.cpp": "2d8332426b2698040d5c491c7c78208e47ca5c6e22bed1f4f66f03b54c2fd2f4",
+    "src/protocol/job_completion.cpp": "0abfdf916a78c56def9b9c201c7e24100500f62871eda9919c264ac93e05bb08",
+    "src/protocol/job_submission.cpp": "e22153b0ad8e533e9ae86ccb1d0a6df1a33b944b1b33981f094fcfda7eb386e6",
+    "src/protocol/registration.cpp": "e4aaac958c14bac234c955f7bfa9ef7eb9f6a521ad76f0592cd5a78a282191f2",
+    "src/protocol/scheduler_protocol.cpp": "d4d7159cdb34ecdfa07c1220e1755962e17fbd5103bfe2f84545d2b3c21036b2"
+  },
+  "cmake": {
+    "CMAKE_BUILD_TYPE": "Release",
+    "CMAKE_CXX_COMPILER": "/usr/bin/c++",
+    "CMAKE_CXX_FLAGS": "-Wall -Wextra -Wpedantic",
+    "CMAKE_CXX_FLAGS_RELEASE": "-O3 -DNDEBUG"
+  },
+  "kernel_network_settings": {
+    "core/somaxconn": 4096,
+    "ipv4/tcp_max_syn_backlog": 512,
+    "ipv4/tcp_syncookies": 1,
+    "ipv4/tcp_abort_on_overflow": 0
+  },
+  "execution_order": [
+    {
+      "label": "blocking",
+      "concurrency": 10,
+      "repeat": 1,
+      "port": 39963,
+      "backlog": 128,
+      "server_command": [
+        "/home/zzm/C++/HeteroSched/build/scheduler_server",
+        "--port",
+        "0",
+        "--backlog",
+        "128",
+        "--quiet"
+      ],
+      "server_pid": 76316,
+      "stderr_log": "/home/zzm/C++/HeteroSched/build/tcp-comparison-logs/s1-b128-c10-r1-blocking.log"
+    },
+    {
+      "label": "epoll",
+      "concurrency": 10,
+      "repeat": 1,
+      "port": 39963,
+      "backlog": 128,
+      "server_command": [
+        "/home/zzm/C++/HeteroSched/build/scheduler_server_epoll",
+        "--port",
+        "39963",
+        "--backlog",
+        "128",
+        "--quiet"
+      ],
+      "server_pid": 76341,
+      "stderr_log": "/home/zzm/C++/HeteroSched/build/tcp-comparison-logs/s1-b128-c10-r1-epoll.log"
+    },
+    {
+      "label": "epoll",
+      "concurrency": 10,
+      "repeat": 2,
+      "port": 39963,
+      "backlog": 128,
+      "server_command": [
+        "/home/zzm/C++/HeteroSched/build/scheduler_server_epoll",
+        "--port",
+        "39963",
+        "--backlog",
+        "128",
+        "--quiet"
+      ],
+      "server_pid": 76353,
+      "stderr_log": "/home/zzm/C++/HeteroSched/build/tcp-comparison-logs/s1-b128-c10-r2-epoll.log"
+    },
+    {
+      "label": "blocking",
+      "concurrency": 10,
+      "repeat": 2,
+      "port": 39963,
+      "backlog": 128,
+      "server_command": [
+        "/home/zzm/C++/HeteroSched/build/scheduler_server",
+        "--port",
+        "39963",
+        "--backlog",
+        "128",
+        "--quiet"
+      ],
+      "server_pid": 76365,
+      "stderr_log": "/home/zzm/C++/HeteroSched/build/tcp-comparison-logs/s1-b128-c10-r2-blocking.log"
+    },
+    {
+      "label": "blocking",
+      "concurrency": 10,
+      "repeat": 3,
+      "port": 39963,
+      "backlog": 128,
+      "server_command": [
+        "/home/zzm/C++/HeteroSched/build/scheduler_server",
+        "--port",
+        "39963",
+        "--backlog",
+        "128",
+        "--quiet"
+      ],
+      "server_pid": 76383,
+      "stderr_log": "/home/zzm/C++/HeteroSched/build/tcp-comparison-logs/s1-b128-c10-r3-blocking.log"
+    },
+    {
+      "label": "epoll",
+      "concurrency": 10,
+      "repeat": 3,
+      "port": 39963,
+      "backlog": 128,
+      "server_command": [
+        "/home/zzm/C++/HeteroSched/build/scheduler_server_epoll",
+        "--port",
+        "39963",
+        "--backlog",
+        "128",
+        "--quiet"
+      ],
+      "server_pid": 76401,
+      "stderr_log": "/home/zzm/C++/HeteroSched/build/tcp-comparison-logs/s1-b128-c10-r3-epoll.log"
+    },
+    {
+      "label": "blocking",
+      "concurrency": 50,
+      "repeat": 1,
+      "port": 39963,
+      "backlog": 128,
+      "server_command": [
+        "/home/zzm/C++/HeteroSched/build/scheduler_server",
+        "--port",
+        "39963",
+        "--backlog",
+        "128",
+        "--quiet"
+      ],
+      "server_pid": 76413,
+      "stderr_log": "/home/zzm/C++/HeteroSched/build/tcp-comparison-logs/s1-b128-c50-r1-blocking.log"
+    },
+    {
+      "label": "epoll",
+      "concurrency": 50,
+      "repeat": 1,
+      "port": 39963,
+      "backlog": 128,
+      "server_command": [
+        "/home/zzm/C++/HeteroSched/build/scheduler_server_epoll",
+        "--port",
+        "39963",
+        "--backlog",
+        "128",
+        "--quiet"
+      ],
+      "server_pid": 76465,
+      "stderr_log": "/home/zzm/C++/HeteroSched/build/tcp-comparison-logs/s1-b128-c50-r1-epoll.log"
+    },
+    {
+      "label": "epoll",
+      "concurrency": 50,
+      "repeat": 2,
+      "port": 39963,
+      "backlog": 128,
+      "server_command": [
+        "/home/zzm/C++/HeteroSched/build/scheduler_server_epoll",
+        "--port",
+        "39963",
+        "--backlog",
+        "128",
+        "--quiet"
+      ],
+      "server_pid": 76517,
+      "stderr_log": "/home/zzm/C++/HeteroSched/build/tcp-comparison-logs/s1-b128-c50-r2-epoll.log"
+    },
+    {
+      "label": "blocking",
+      "concurrency": 50,
+      "repeat": 2,
+      "port": 39963,
+      "backlog": 128,
+      "server_command": [
+        "/home/zzm/C++/HeteroSched/build/scheduler_server",
+        "--port",
+        "39963",
+        "--backlog",
+        "128",
+        "--quiet"
+      ],
+      "server_pid": 76569,
+      "stderr_log": "/home/zzm/C++/HeteroSched/build/tcp-comparison-logs/s1-b128-c50-r2-blocking.log"
+    },
+    {
+      "label": "blocking",
+      "concurrency": 50,
+      "repeat": 3,
+      "port": 39963,
+      "backlog": 128,
+      "server_command": [
+        "/home/zzm/C++/HeteroSched/build/scheduler_server",
+        "--port",
+        "39963",
+        "--backlog",
+        "128",
+        "--quiet"
+      ],
+      "server_pid": 76621,
+      "stderr_log": "/home/zzm/C++/HeteroSched/build/tcp-comparison-logs/s1-b128-c50-r3-blocking.log"
+    },
+    {
+      "label": "epoll",
+      "concurrency": 50,
+      "repeat": 3,
+      "port": 39963,
+      "backlog": 128,
+      "server_command": [
+        "/home/zzm/C++/HeteroSched/build/scheduler_server_epoll",
+        "--port",
+        "39963",
+        "--backlog",
+        "128",
+        "--quiet"
+      ],
+      "server_pid": 76679,
+      "stderr_log": "/home/zzm/C++/HeteroSched/build/tcp-comparison-logs/s1-b128-c50-r3-epoll.log"
+    },
+    {
+      "label": "blocking",
+      "concurrency": 100,
+      "repeat": 1,
+      "port": 39963,
+      "backlog": 128,
+      "server_command": [
+        "/home/zzm/C++/HeteroSched/build/scheduler_server",
+        "--port",
+        "39963",
+        "--backlog",
+        "128",
+        "--quiet"
+      ],
+      "server_pid": 76731,
+      "stderr_log": "/home/zzm/C++/HeteroSched/build/tcp-comparison-logs/s1-b128-c100-r1-blocking.log"
+    },
+    {
+      "label": "epoll",
+      "concurrency": 100,
+      "repeat": 1,
+      "port": 39963,
+      "backlog": 128,
+      "server_command": [
+        "/home/zzm/C++/HeteroSched/build/scheduler_server_epoll",
+        "--port",
+        "39963",
+        "--backlog",
+        "128",
+        "--quiet"
+      ],
+      "server_pid": 76833,
+      "stderr_log": "/home/zzm/C++/HeteroSched/build/tcp-comparison-logs/s1-b128-c100-r1-epoll.log"
+    },
+    {
+      "label": "epoll",
+      "concurrency": 100,
+      "repeat": 2,
+      "port": 39963,
+      "backlog": 128,
+      "server_command": [
+        "/home/zzm/C++/HeteroSched/build/scheduler_server_epoll",
+        "--port",
+        "39963",
+        "--backlog",
+        "128",
+        "--quiet"
+      ],
+      "server_pid": 76935,
+      "stderr_log": "/home/zzm/C++/HeteroSched/build/tcp-comparison-logs/s1-b128-c100-r2-epoll.log"
+    },
+    {
+      "label": "blocking",
+      "concurrency": 100,
+      "repeat": 2,
+      "port": 39963,
+      "backlog": 128,
+      "server_command": [
+        "/home/zzm/C++/HeteroSched/build/scheduler_server",
+        "--port",
+        "39963",
+        "--backlog",
+        "128",
+        "--quiet"
+      ],
+      "server_pid": 77037,
+      "stderr_log": "/home/zzm/C++/HeteroSched/build/tcp-comparison-logs/s1-b128-c100-r2-blocking.log"
+    },
+    {
+      "label": "blocking",
+      "concurrency": 100,
+      "repeat": 3,
+      "port": 39963,
+      "backlog": 128,
+      "server_command": [
+        "/home/zzm/C++/HeteroSched/build/scheduler_server",
+        "--port",
+        "39963",
+        "--backlog",
+        "128",
+        "--quiet"
+      ],
+      "server_pid": 77139,
+      "stderr_log": "/home/zzm/C++/HeteroSched/build/tcp-comparison-logs/s1-b128-c100-r3-blocking.log"
+    },
+    {
+      "label": "epoll",
+      "concurrency": 100,
+      "repeat": 3,
+      "port": 39963,
+      "backlog": 128,
+      "server_command": [
+        "/home/zzm/C++/HeteroSched/build/scheduler_server_epoll",
+        "--port",
+        "39963",
+        "--backlog",
+        "128",
+        "--quiet"
+      ],
+      "server_pid": 77241,
+      "stderr_log": "/home/zzm/C++/HeteroSched/build/tcp-comparison-logs/s1-b128-c100-r3-epoll.log"
+    }
+  ],
+  "aborted": null,
+  "rows": [
+    {
+      "concurrency": 10,
+      "blocking": {
+        "concurrency": 10,
+        "runs": 3,
+        "total_completed": 0,
+        "total_failed": 300,
+        "median_throughput_success_rps": 0.0,
+        "median_error_rate_pct": 100.0,
+        "median_p50_ms": null,
+        "median_p95_ms": null,
+        "median_server_cpu_pct_one_core": 0.0,
+        "median_process_peak_rss_kib": 3200,
+        "failure_phases": {
+          "receive": 300
+        }
+      },
+      "epoll": {
+        "concurrency": 10,
+        "runs": 3,
+        "total_completed": 300,
+        "total_failed": 0,
+        "median_throughput_success_rps": 2104.7165519287455,
+        "median_error_rate_pct": 0.0,
+        "median_p50_ms": 4.107088,
+        "median_p95_ms": 6.240271,
+        "median_server_cpu_pct_one_core": 0.0,
+        "median_process_peak_rss_kib": 3200,
+        "failure_phases": {}
+      }
+    },
+    {
+      "concurrency": 50,
+      "blocking": {
+        "concurrency": 50,
+        "runs": 3,
+        "total_completed": 0,
+        "total_failed": 300,
+        "median_throughput_success_rps": 0.0,
+        "median_error_rate_pct": 100.0,
+        "median_p50_ms": null,
+        "median_p95_ms": null,
+        "median_server_cpu_pct_one_core": 0.0,
+        "median_process_peak_rss_kib": 3200,
+        "failure_phases": {
+          "receive": 300
+        }
+      },
+      "epoll": {
+        "concurrency": 50,
+        "runs": 3,
+        "total_completed": 300,
+        "total_failed": 0,
+        "median_throughput_success_rps": 1967.6619094045564,
+        "median_error_rate_pct": 0.0,
+        "median_p50_ms": 19.164266,
+        "median_p95_ms": 29.942984,
+        "median_server_cpu_pct_one_core": 19.6036152908905,
+        "median_process_peak_rss_kib": 3200,
+        "failure_phases": {}
+      }
+    },
+    {
+      "concurrency": 100,
+      "blocking": {
+        "concurrency": 100,
+        "runs": 3,
+        "total_completed": 0,
+        "total_failed": 300,
+        "median_throughput_success_rps": 0.0,
+        "median_error_rate_pct": 100.0,
+        "median_p50_ms": null,
+        "median_p95_ms": null,
+        "median_server_cpu_pct_one_core": 0.0,
+        "median_process_peak_rss_kib": 3200,
+        "failure_phases": {
+          "receive": 300
+        }
+      },
+      "epoll": {
+        "concurrency": 100,
+        "runs": 3,
+        "total_completed": 300,
+        "total_failed": 0,
+        "median_throughput_success_rps": 1833.7906104162644,
+        "median_error_rate_pct": 0.0,
+        "median_p50_ms": 38.058249,
+        "median_p95_ms": 48.545385,
+        "median_server_cpu_pct_one_core": 18.271795479261797,
+        "median_process_peak_rss_kib": 3200,
+        "failure_phases": {}
+      }
+    }
+  ]
+}

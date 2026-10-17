@@ -62,7 +62,7 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    // 默认 backlog 为 1，可通过参数独立进行监听队列实验。
+    // 为并发短连接预留监听队列；--backlog 1 可复现旧基线。
     // 失败时同样处理错误并关闭 serverFd。
     if (listen(serverFd, options.backlog) < 0) {
         std::perror("listen failed");

@@ -1,0 +1,296 @@
+{
+  "review_date_local": "2026-10-17",
+  "timezone": "Asia/Shanghai",
+  "baseline_commit": "ee6d72876622da090478418bfdcfd99fcf47782a",
+  "initial_worktree_clean": true,
+  "environment": {
+    "created_utc": "2026-10-17T08:22:52.146886+00:00",
+    "os": "Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+    "cpu_model": "AMD Ryzen 7 6800H with Radeon Graphics",
+    "logical_cpus": 16,
+    "python": "3.12.3",
+    "git_commit": "ee6d72876622da090478418bfdcfd99fcf47782a",
+    "git_status": "M apps/scheduler_server.cpp\n M apps/server_options.h\n M benchmarks/compare_tcp_servers.py\n M include/net/epoll_server.h\n M src/core/worker.cpp\n M tests/core/scheduler_test.cpp\n M tests/net/tcp_comparison_test.py\n?? assets/\n?? benchmarks/results/final_review/",
+    "script_sha256": "f45e4c1f77674c72f3dc1ebc30441462b099f2d12836a0d8cf9499761b6eae08",
+    "server_binary_sha256": "4ebef519702bab3b12804613bd069c2f8152b8f8291d7b934c689ffd248ae87a",
+    "compiler": "c++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0\nCopyright (C) 2023 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.",
+    "build_notes": "Release; quiet; backlog=128; SO_REUSEADDR; fresh server each run; alternating order"
+  },
+  "build_command": "cmake -S . -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build --parallel",
+  "ctest_command": "ctest --test-dir build --output-on-failure",
+  "baseline_ctest": {
+    "passed": 11,
+    "failed": 0,
+    "elapsed_s": 5.5
+  },
+  "final_ctest": {
+    "passed": 11,
+    "failed": 0,
+    "elapsed_s": 5.53
+  },
+  "regressions": [
+    "Worker::release negative-resource regression failed before the guard and passed afterward; zero/excess releases leave state unchanged.",
+    "INT_MAX resources, resource exhaustion and exactly-once release verified across three scheduling policies.",
+    "Shared server tests cover fragmented writes, half-close, invalid/overlong input, repeated disconnects, 16 simultaneous claims/completions, and different per-connection message contracts."
+  ],
+  "demos": {
+    "both_real_worker_and_job_client_workflows_passed": true,
+    "both_manual_schedule_and_complete_workflows_passed": true,
+    "single_process_demo_passed": true,
+    "scheduler_benchmark_passed": true
+  },
+  "diagnosis": {
+    "finding": "Reproduced connect-phase timeouts with backlog=1; identical baseline binaries using backlog=128 completed all requests at the same 1s timeout.",
+    "binary_identity_verified": true,
+    "control_note": "backlog_128_control used the unchanged baseline executables before relinking the Worker guard; its source snapshot includes edits already in progress. final uses rebuilt executables with source hashes.",
+    "limitations": "ListenOverflows/ListenDrops are network-namespace counters, not per-process attribution. No packet capture; individual historical 20/1000 failures cannot be reconstructed from the old description alone.",
+    "client_review": "Fixed-size thread pool with synchronized start; each thread issues sequential one-request connections; timeout is per socket operation; all failures retained; successful latency only; throughput includes failed-request time.",
+    "change": "Default backlog 1 -> 128 in both servers and comparison runner; --backlog 1 remains available; timeout unchanged."
+  },
+  "measurements": {
+    "backlog_1": {
+      "command": [
+        "/usr/bin/python3",
+        "benchmarks/compare_tcp_servers.py",
+        "--build-dir",
+        "build",
+        "--requests",
+        "1000",
+        "--warmup",
+        "10",
+        "--concurrency",
+        "1",
+        "10",
+        "50",
+        "100",
+        "--repeat",
+        "3",
+        "--timeout",
+        "1",
+        "--backlog",
+        "1",
+        "--output-dir",
+        "benchmarks/results/final_review/backlog_1"
+      ],
+      "aborted": null,
+      "exit_code": 1,
+      "results": {
+        "blocking": {
+          "completed": 9953,
+          "failed": 2047,
+          "failure_phases": {
+            "connect": 2047
+          },
+          "all_recovery_probes_ok": true
+        },
+        "epoll": {
+          "completed": 11996,
+          "failed": 4,
+          "failure_phases": {
+            "connect": 4
+          },
+          "all_recovery_probes_ok": true
+        }
+      }
+    },
+    "backlog_128_control": {
+      "command": [
+        "/usr/bin/python3",
+        "benchmarks/compare_tcp_servers.py",
+        "--build-dir",
+        "build",
+        "--requests",
+        "1000",
+        "--warmup",
+        "10",
+        "--concurrency",
+        "1",
+        "10",
+        "50",
+        "100",
+        "--repeat",
+        "3",
+        "--timeout",
+        "1",
+        "--backlog",
+        "128",
+        "--output-dir",
+        "benchmarks/results/final_review/backlog_128_control"
+      ],
+      "aborted": null,
+      "exit_code": 0,
+      "results": {
+        "blocking": {
+          "completed": 12000,
+          "failed": 0,
+          "failure_phases": {},
+          "all_recovery_probes_ok": true
+        },
+        "epoll": {
+          "completed": 12000,
+          "failed": 0,
+          "failure_phases": {},
+          "all_recovery_probes_ok": true
+        }
+      }
+    },
+    "final": {
+      "command": [
+        "/usr/bin/python3",
+        "benchmarks/compare_tcp_servers.py",
+        "--build-dir",
+        "build",
+        "--requests",
+        "1000",
+        "--warmup",
+        "10",
+        "--concurrency",
+        "1",
+        "10",
+        "50",
+        "100",
+        "--repeat",
+        "3",
+        "--timeout",
+        "1",
+        "--output-dir",
+        "benchmarks/results/final_review/final"
+      ],
+      "aborted": null,
+      "exit_code": 0,
+      "results": {
+        "blocking": {
+          "completed": 12000,
+          "failed": 0,
+          "failure_phases": {},
+          "all_recovery_probes_ok": true
+        },
+        "epoll": {
+          "completed": 12000,
+          "failed": 0,
+          "failure_phases": {},
+          "all_recovery_probes_ok": true
+        }
+      }
+    },
+    "slow_control": {
+      "command": [
+        "/usr/bin/python3",
+        "benchmarks/compare_tcp_servers.py",
+        "--build-dir",
+        "build",
+        "--requests",
+        "100",
+        "--warmup",
+        "10",
+        "--concurrency",
+        "10",
+        "50",
+        "100",
+        "--repeat",
+        "3",
+        "--timeout",
+        "0.2",
+        "--backlog",
+        "128",
+        "--slow-clients",
+        "0",
+        "--output-dir",
+        "benchmarks/results/final_review/slow_control"
+      ],
+      "aborted": null,
+      "exit_code": 0,
+      "results": {
+        "blocking": {
+          "completed": 900,
+          "failed": 0,
+          "failure_phases": {},
+          "all_recovery_probes_ok": true
+        },
+        "epoll": {
+          "completed": 900,
+          "failed": 0,
+          "failure_phases": {},
+          "all_recovery_probes_ok": true
+        }
+      }
+    },
+    "one_slow": {
+      "command": [
+        "/usr/bin/python3",
+        "benchmarks/compare_tcp_servers.py",
+        "--build-dir",
+        "build",
+        "--requests",
+        "100",
+        "--warmup",
+        "10",
+        "--concurrency",
+        "10",
+        "50",
+        "100",
+        "--repeat",
+        "3",
+        "--timeout",
+        "0.2",
+        "--backlog",
+        "128",
+        "--slow-clients",
+        "1",
+        "--output-dir",
+        "benchmarks/results/final_review/one_slow"
+      ],
+      "aborted": null,
+      "exit_code": 1,
+      "results": {
+        "blocking": {
+          "completed": 0,
+          "failed": 900,
+          "failure_phases": {
+            "receive": 900
+          },
+          "all_recovery_probes_ok": true
+        },
+        "epoll": {
+          "completed": 900,
+          "failed": 0,
+          "failure_phases": {},
+          "all_recovery_probes_ok": true
+        }
+      }
+    }
+  },
+  "accounting_audit": {
+    "all_runs_success_plus_failure_equals_requests": true,
+    "all_raw_sample_counts_match": true,
+    "all_summaries_recomputed_and_match": true,
+    "all_quiet_runs_have_no_request_logs": true
+  },
+  "diagram": {
+    "source": "assets/architecture.drawio",
+    "preview": "assets/architecture.png",
+    "validation": "0 errors, 0 warnings, 0 crossings/overlaps/through-vertex; browser preview visually inspected and SVG edge paths inspected"
+  },
+  "readme_lines": 114,
+  "limits": [
+    "Strict FIFO head-of-line blocking.",
+    "Responses can be lost after state mutation; no end-to-end exactly-once delivery/recovery.",
+    "No real AI execution, persistence, heartbeat, GPU/NPU scheduling, authentication or graceful shutdown.",
+    "No deterministic EINTR signal-injection or fd-exhaustion test added; corresponding source paths reviewed.",
+    "Python client and host scheduling affect loopback results; CPU ticks and short measurement windows limit precision."
+  ],
+  "excluded_diagnostic_run": "An additional all-success run overlapped diagram rendering; retained under ignored build/final-review-with-preview and excluded from the formal performance table.",
+  "test_source_sha256": {
+    "tests/core/job_dispatch_test.cpp": "e77012be3f202b7afe0e357395b6b975eb48426920c73ca49078d782a7ed30ac",
+    "tests/core/scheduler_test.cpp": "526a81a05c893bd940e07d9f425bdb19e23bd201f0030b284d4c67f69325c81b",
+    "tests/net/epoll_server_integration_test.py": "d2c7f8084c7840054e27a3d75a7bdf836babf73fd311558865021f6ae97aeea3",
+    "tests/net/epoll_server_io_test.cpp": "c7cbda2975b614ddb9b3f389a2827cc7f1f77699c71ea162a2d4c60b62ae5f92",
+    "tests/net/tcp_benchmark_test.py": "faf165e3d0dead2cf4d01fce1bb88538644c3d33e2f8cccb21a13ea2cb0a9dc3",
+    "tests/net/tcp_comparison_test.py": "9397e01b60ac4fecb00fa6b0d661d79d3115de91bf1dbf3ed479a7941ed1bd04",
+    "tests/net/tcp_io_test.cpp": "4a43cdfcc8b31c190125934fda750416ed422ee10d053ba3da992ed200ae5716",
+    "tests/protocol/job_completion_test.cpp": "c729e2de68bacbe77a028604f319d0fb8834f7b5f0c84cc6cd9c51900b6c6d13",
+    "tests/protocol/job_submission_test.cpp": "5aa702f2aba786429f2ff83017d27ae6749229db70e1925a54daa5d71fbec4fc",
+    "tests/protocol/registration_test.cpp": "ba9d5c33565fdb5aa912f2db6845b3ce909aad52908fb1d69d05cf9284cf19f9",
+    "tests/protocol/scheduler_protocol_test.cpp": "6d5ac860423d3050089552ff50a56457190f62b2899d93d9dd16f7eb15ab8fec"
+  }
+}

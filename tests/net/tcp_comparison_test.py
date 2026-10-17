@@ -1,12 +1,14 @@
 """验证对比工具的条件一致性、进程生命周期和结果保存。"""
 
 import io
+from concurrent.futures import ThreadPoolExecutor
 import json
 from pathlib import Path
 import socket
 import subprocess
 import sys
 import tempfile
+import threading
 import unittest
 from unittest.mock import patch
 
@@ -15,6 +17,7 @@ sys.path.insert(0, str(ROOT / "benchmarks"))
 from compare_tcp_servers import ServerProcess, counter_delta, listen_counters
 import compare_tcp_servers
 from slow_client import SlowClient, run_slow_case, wait_until_accepted
+from epoll_server_integration_test import Peer
 
 
 def request(port, payload):
@@ -32,6 +35,85 @@ def request(port, payload):
 class ComparisonTests(unittest.TestCase):
     def binary(self, label):
         return BUILD_DIR / ("scheduler_server" if label == "blocking" else "scheduler_server_epoll")
+
+    def test_shared_framing_validation_and_disconnects(self):
+        with tempfile.TemporaryDirectory() as directory:
+            for label in ("blocking", "epoll"):
+                with self.subTest(server=label), ServerProcess(
+                        self.binary(label), 0, Path(directory) / label, backlog=128) as server:
+                    peer = Peer(server.port)
+                    try:
+                        peer.send(b"REGISTER_WORKER 1 ")
+                        wait_until_accepted(server.process.pid, peer.socket)
+                        peer.send(b"2 4096\n")
+                        peer.socket.shutdown(socket.SHUT_WR)
+                        self.assertEqual(peer.line(), b"REGISTER_OK\n")
+                        peer.eof()
+                    finally:
+                        peer.close()
+                    for payload, expected in (
+                        (b"BAD\n", b"REQUEST_ERROR UNKNOWN_COMMAND\n"),
+                        (b"SUBMIT_JOB 1 -1 1\n", b"SUBMIT_ERROR INVALID_MESSAGE\n"),
+                        (b"SUBMIT_JOB 2147483648 1 1\n", b"SUBMIT_ERROR INVALID_MESSAGE\n"),
+                        (b"SCHEDULE_NEXT" + b" " * 115 + b"\n", b"SCHEDULE_NONE\n"),
+                    ):
+                        self.assertEqual(request(server.port, payload), expected)
+                    for _ in range(20):
+                        for payload in (b"SUBMIT_JOB 7 1", b"x" * 129):
+                            with socket.create_connection(("127.0.0.1", server.port), timeout=3) as sock:
+                                sock.sendall(payload)
+                                sock.shutdown(socket.SHUT_WR)
+                                self.assertEqual(sock.recv(1), b"")
+                        self.assertEqual(request(server.port, b"SCHEDULE_NEXT\n"), b"SCHEDULE_NONE\n")
+                    # Incomplete submissions never entered scheduler state.
+                    self.assertEqual(request(server.port, b"SUBMIT_JOB 7 1 1\n"), b"SUBMIT_OK\n")
+                self.assertEqual(server.stdout_tail, "")
+                self.assertEqual((Path(directory) / label).read_text(), "")
+
+    def test_shared_concurrent_claim_and_completion_accounting(self):
+        with tempfile.TemporaryDirectory() as directory:
+            for label in ("blocking", "epoll"):
+                with self.subTest(server=label), ServerProcess(
+                        self.binary(label), 0, Path(directory) / label, backlog=128) as server:
+                    self.assertEqual(request(server.port, b"REGISTER_WORKER 1 1 1\n"), b"REGISTER_OK\n")
+                    self.assertEqual(request(server.port, b"SUBMIT_JOB 1 1 1\n"), b"SUBMIT_OK\n")
+
+                    def burst(payload):
+                        ready = threading.Barrier(16)
+                        def client(_):
+                            ready.wait(timeout=3)
+                            return request(server.port, payload)
+                        with ThreadPoolExecutor(max_workers=16) as pool:
+                            return list(pool.map(client, range(16)))
+
+                    claims = burst(b"FETCH_JOB 1\n")
+                    self.assertEqual(claims.count(b"RUN_JOB 1 1 1\n"), 1)
+                    self.assertEqual(claims.count(b"NO_JOB\n"), 15)
+                    self.assertEqual(request(server.port, b"SUBMIT_JOB 2 1 1\n"), b"SUBMIT_OK\n")
+                    self.assertEqual(request(server.port, b"FETCH_JOB 1\n"), b"NO_JOB\n")
+                    completions = burst(b"COMPLETE_JOB 1\n")
+                    self.assertEqual(completions.count(b"COMPLETE_OK\n"), 1)
+                    self.assertEqual(completions.count(b"COMPLETE_ERROR COMPLETION_REJECTED\n"), 15)
+                    self.assertEqual(request(server.port, b"FETCH_JOB 1\n"), b"RUN_JOB 2 1 1\n")
+                    self.assertEqual(request(server.port, b"COMPLETE_JOB 2\n"), b"COMPLETE_OK\n")
+
+    def test_connection_message_count_matches_server_contract(self):
+        with tempfile.TemporaryDirectory() as directory:
+            for label in ("blocking", "epoll"):
+                with ServerProcess(self.binary(label), 0, Path(directory) / label) as server:
+                    peer = Peer(server.port)
+                    try:
+                        peer.send(b"SUBMIT_JOB 1 1 1\nSUBMIT_JOB 2 1 1\n")
+                        peer.socket.shutdown(socket.SHUT_WR)
+                        self.assertEqual(peer.line(), b"SUBMIT_OK\n")
+                        if label == "epoll":
+                            self.assertEqual(peer.line(), b"SUBMIT_OK\n")
+                            peer.eof()
+                        # Blocking closes after the first request; unread data may cause RST.
+                    finally:
+                        peer.close()
+                    expected = b"SUBMIT_OK\n" if label == "blocking" else b"SUBMIT_ERROR JOB_REJECTED\n"
+                    self.assertEqual(request(server.port, b"SUBMIT_JOB 2 1 1\n"), expected)
 
     def test_quiet_mode_protocol_and_error_paths(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -89,7 +171,7 @@ class ComparisonTests(unittest.TestCase):
             result = self.compare(output)
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             comparison = json.loads((output / "comparison.json").read_text())
-            self.assertEqual(comparison["configuration"]["backlog"], 1)
+            self.assertEqual(comparison["configuration"]["backlog"], 128)
             self.assertIsNone(comparison["aborted"])
             order = comparison["execution_order"]
             self.assertEqual(len({item["port"] for item in order}), 1)
@@ -203,7 +285,7 @@ class ComparisonTests(unittest.TestCase):
 
     def test_invalid_slow_setup_is_rejected(self):
         with tempfile.TemporaryDirectory() as directory:
-            for arguments in (("--slow-clients", "2"), ("--slow-clients", "1"),
+            for arguments in (("--slow-clients", "2"), ("--slow-clients", "1", "--backlog", "1"),
                               ("--slow-clients", "1", "--backlog", "128", "--requests", "128"),
                               ("--slow-clients", "1", "--backlog", "128", "--timeout", "31")):
                 result = self.compare(Path(directory), *arguments)

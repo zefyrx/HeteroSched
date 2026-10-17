@@ -17,7 +17,7 @@ from slow_client import run_slow_case
 
 
 class ServerProcess:
-    def __init__(self, executable, port, log_path, quiet=True, backlog=1):
+    def __init__(self, executable, port, log_path, quiet=True, backlog=128):
         self.command = [str(executable), "--port", str(port), "--backlog", str(backlog)]
         if quiet:
             self.command.append("--quiet")
@@ -145,8 +145,8 @@ def main():
     parser.add_argument("--concurrency", type=int, nargs="+", default=[1, 10, 50, 100])
     parser.add_argument("--repeat", type=int, default=3)
     parser.add_argument("--timeout", type=float, default=1.0)
-    parser.add_argument("--backlog", type=int, default=1,
-                        help="Requested listen backlog for both servers (default: 1)")
+    parser.add_argument("--backlog", type=int, default=128,
+                        help="Requested listen backlog for both servers (default: 128; use 1 for old baseline)")
     parser.add_argument("--slow-clients", type=int, choices=(0, 1), default=0,
                         help="Hold one accepted incomplete request during normal traffic (Linux)")
     args = parser.parse_args()

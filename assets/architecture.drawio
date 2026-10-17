@@ -1,0 +1,70 @@
+<mxfile host="app.diagrams.net" type="device">
+  <diagram id="heterosched-architecture" name="Architecture">
+    <mxGraphModel dx="1100" dy="1100" grid="1" gridSize="10" page="1" pageWidth="1100" pageHeight="1100" background="#ffffff">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="clients" value="TCP clients&lt;br&gt;job_client / scheduler_client / worker_client" vertex="1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=16;fillColor=#dae8fc;strokeColor=#6c8ebf;">
+          <mxGeometry x="280" y="30" width="540" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="server" value="Scheduler process — choose one TCP entry point" vertex="1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=16;fillColor=#dae8fc;strokeColor=#6c8ebf;swimlane;startSize=40;fillColor=#f5f5f5;strokeColor=#666666;fontStyle=1;container=1;pointerEvents=0;">
+          <mxGeometry x="40" y="180" width="1020" height="820" as="geometry" />
+        </mxCell>
+        <mxCell id="blocking" value="scheduler_server&lt;br&gt;blocking: one request per connection" vertex="1" parent="server" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=16;fillColor=#dae8fc;strokeColor=#6c8ebf;">
+          <mxGeometry x="40" y="70" width="380" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="epoll" value="scheduler_server_epoll / EpollServer&lt;br&gt;single-threaded LT: buffered connections" vertex="1" parent="server" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=16;fillColor=#dae8fc;strokeColor=#6c8ebf;">
+          <mxGeometry x="600" y="70" width="380" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="protocol" value="processSchedulerRequest()&lt;br&gt;parse / validate / dispatch commands" vertex="1" parent="server" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=16;fillColor=#dae8fc;strokeColor=#6c8ebf;">
+          <mxGeometry x="260" y="240" width="500" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="core" value="Scheduler (mutex)&lt;br&gt;FirstFit / BinPack / LeastAllocated" vertex="1" parent="server" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=16;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;">
+          <mxGeometry x="260" y="400" width="500" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="jobs" value="Job&lt;br&gt;FIFO waiting queue&lt;br&gt;running job records" vertex="1" parent="server" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=16;fillColor=#dae8fc;strokeColor=#6c8ebf;">
+          <mxGeometry x="40" y="590" width="280" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="dispatch" value="pendingDispatches_&lt;br&gt;per-worker job IDs&lt;br&gt;consumed once on FETCH_JOB" vertex="1" parent="server" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=16;fillColor=#dae8fc;strokeColor=#6c8ebf;">
+          <mxGeometry x="370" y="590" width="280" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="workers" value="Worker&lt;br&gt;total / available resources" vertex="1" parent="server" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=16;fillColor=#dae8fc;strokeColor=#6c8ebf;">
+          <mxGeometry x="700" y="590" width="280" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="resources" value="Resource&lt;br&gt;CPU cores / memory MB" vertex="1" parent="server" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=16;fillColor=#dae8fc;strokeColor=#6c8ebf;">
+          <mxGeometry x="700" y="730" width="280" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="note" value="Each server process owns its Scheduler. Worker execution is simulated (500 ms)." vertex="1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=16;fillColor=#dae8fc;strokeColor=#6c8ebf;fillColor=none;strokeColor=none;fontSize=15;">
+          <mxGeometry x="100" y="1030" width="900" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="tcp-blocking" source="clients" target="blocking" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endSize=8;strokeColor=#52677f;exitX=0.25;exitY=1;entryX=0.5;entryY=0;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="tcp-epoll" source="clients" target="epoll" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endSize=8;strokeColor=#52677f;exitX=0.75;exitY=1;entryX=0.5;entryY=0;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="blocking-handler" source="blocking" target="protocol" edge="1" parent="server" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endSize=8;strokeColor=#52677f;exitX=0.5;exitY=1;entryX=0.25;entryY=0;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="epoll-handler" source="epoll" target="protocol" edge="1" parent="server" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endSize=8;strokeColor=#52677f;exitX=0.5;exitY=1;entryX=0.75;entryY=0;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="handler-core" source="protocol" target="core" edge="1" parent="server" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endSize=8;strokeColor=#52677f;exitX=0.5;exitY=1;entryX=0.5;entryY=0;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="core-jobs" source="core" target="jobs" edge="1" parent="server" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endSize=8;strokeColor=#52677f;exitX=0.15;exitY=1;entryX=0.5;entryY=0;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="core-dispatch" source="core" target="dispatch" edge="1" parent="server" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endSize=8;strokeColor=#52677f;exitX=0.5;exitY=1;entryX=0.5;entryY=0;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="core-workers" source="core" target="workers" edge="1" parent="server" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endSize=8;strokeColor=#52677f;exitX=0.85;exitY=1;entryX=0.5;entryY=0;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="worker-resource" source="workers" target="resources" edge="1" parent="server" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endSize=8;strokeColor=#52677f;exitX=0.5;exitY=1;entryX=0.5;entryY=0;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,4 +1,5 @@
 #include <iostream>
+#include <limits>
 #include <thread>
 #include <vector>
 
@@ -429,7 +430,49 @@ bool testWorkerAndJobIdsUseSeparateNamespaces() {
     return true;
 }
 
+bool testWorkerRejectsInvalidRelease() {
+    Worker worker{1, {4, 4096}};
+    if (!worker.allocate(Job{1, {2, 2048}})) return false;
+    for (const Resource resource : {Resource{-1, 1}, Resource{1, -1},
+                                    Resource{0, 1}, Resource{1, 0},
+                                    Resource{3, 1}, Resource{1, 2049}}) {
+        if (worker.release(Job{2, resource}) ||
+            worker.getAvailableResource().cpuCores != 2 ||
+            worker.getAvailableResource().memoryMB != 2048) {
+            std::cerr << "FAIL: invalid release changed available resources\n";
+            return false;
+        }
+    }
+    return worker.release(Job{1, {2, 2048}}) &&
+           !worker.release(Job{1, {2, 2048}}) &&
+           worker.getAvailableResource().cpuCores == 4 &&
+           worker.getAvailableResource().memoryMB == 4096;
+}
+
+bool testMaximumResourcesAcrossPolicies() {
+    const int maximum = std::numeric_limits<int>::max();
+    for (auto policy : {SchedulingPolicy::FirstFit, SchedulingPolicy::BinPack,
+                        SchedulingPolicy::LeastAllocated}) {
+        Scheduler scheduler{policy};
+        if (!scheduler.addWorker(Worker{maximum, {maximum, maximum}}) ||
+            !scheduler.submitJob(Job{maximum, {maximum, maximum}}) ||
+            !scheduler.submitJob(Job{0, {1, 1}})) return false;
+        const auto result = scheduler.scheduleNext();
+        if (!result || result->jobId != maximum || result->workerId != maximum ||
+            scheduler.scheduleNext() || scheduler.runningJobCount() != 1 ||
+            scheduler.waitingJobCount() != 1) return false;
+        const auto reserved = scheduler.getWorkerSnapshots().front().availableResource;
+        if (reserved.cpuCores != 0 || reserved.memoryMB != 0 ||
+            !scheduler.completeJob(maximum) || scheduler.completeJob(maximum)) return false;
+        const auto released = scheduler.getWorkerSnapshots().front().availableResource;
+        if (released.cpuCores != maximum || released.memoryMB != maximum ||
+            !scheduler.scheduleNext() || !scheduler.completeJob(0)) return false;
+    }
+    return true;
+}
+
 int main() {
+    if (!testWorkerRejectsInvalidRelease() || !testMaximumResourcesAcrossPolicies()) return 1;
     if (!testBinPackChoosesTighterWorker()) {
         return 1;
     }

@@ -29,7 +29,7 @@ UniqueFd connectTo(EpollServer& server, bool pollListener = true) {
     address.sin_port = htons(server.port());
     require(connect(client.get(), reinterpret_cast<const sockaddr*>(&address), sizeof(address)) == 0,
             "connect failed");
-    // 先接受连接，避免测试被 backlog=1 限制影响。
+    // 先接受连接，使调用方能确定连接已进入事件循环。
     if (pollListener) server.pollOnce(0);
     return client;
 }

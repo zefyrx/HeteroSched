@@ -38,6 +38,10 @@ const Resource& Worker::getTotalResource() const {
 }
 
 bool Worker::release(const Job& job) {
+    if (!hasPositiveResources(job.requiredResource)) {
+        return false;
+    }
+
     const int allocatedCpuCores = totalResource_.cpuCores - availableResource_.cpuCores;
     const int allocatedMemoryMB = totalResource_.memoryMB - availableResource_.memoryMB;
 

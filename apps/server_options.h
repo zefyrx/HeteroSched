@@ -8,7 +8,7 @@
 
 struct ServerOptions {
     std::uint16_t port = 9000;
-    int backlog = 1;
+    int backlog = 128;
     int idleTimeoutMs = 0;
     int maxConnections = 0;
     bool quiet = false;

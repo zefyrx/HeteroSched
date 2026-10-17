@@ -17,10 +17,10 @@ public:
     using Clock = std::chrono::steady_clock;
     using Now = std::function<Clock::time_point()>;
 
-    // port=0 由系统选择空闲端口；backlog 默认 1，以复现原基线。
+    // port=0 由系统选择空闲端口；backlog 默认 128，旧基线可显式传入 1。
     // idleTimeout=0 关闭空闲清理；now 必须单调，测试可注入可控时钟。
     // maxConnections=0 不限制；否则只保留至多指定数量的客户端状态。
-    EpollServer(std::uint16_t port, RequestHandler handler, int backlog = 1,
+    EpollServer(std::uint16_t port, RequestHandler handler, int backlog = 128,
                 std::chrono::milliseconds idleTimeout = std::chrono::milliseconds{0},
                 int maxConnections = 0, Now now = Clock::now);
     std::uint16_t port() const noexcept { return port_; }
