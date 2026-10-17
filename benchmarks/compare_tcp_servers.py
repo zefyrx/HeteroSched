@@ -16,8 +16,10 @@ import tcp_benchmark as benchmark
 
 
 class ServerProcess:
-    def __init__(self, executable, port, log_path, quiet=True):
-        self.command = [str(executable), "--port", str(port)] + (["--quiet"] if quiet else [])
+    def __init__(self, executable, port, log_path, quiet=True, backlog=1):
+        self.command = [str(executable), "--port", str(port), "--backlog", str(backlog)]
+        if quiet:
+            self.command.append("--quiet")
         self.log_path = log_path
         self.process = None
         self.log = None
@@ -69,6 +71,42 @@ def read_cache(build_dir):
     return cache
 
 
+def kernel_network_settings():
+    settings = {}
+    for name in ("core/somaxconn", "ipv4/tcp_max_syn_backlog",
+                 "ipv4/tcp_syncookies", "ipv4/tcp_abort_on_overflow"):
+        try:
+            settings[name] = int(Path("/proc/sys/net", name).read_text())
+        except (OSError, ValueError):
+            settings[name] = None
+    return settings
+
+
+def listen_counters():
+    """读取网络命名空间的全局计数，不能归因于单个服务端 PID。"""
+    try:
+        lines = Path("/proc/net/netstat").read_text().splitlines()
+        for index in range(len(lines) - 1):
+            header = lines[index].split()
+            if header and header[0] == "TcpExt:":
+                values = lines[index + 1].split()
+                if values[0] != "TcpExt:" or len(values) != len(header):
+                    return None
+                counters = dict(zip(header[1:], map(int, values[1:])))
+                return {key: counters[key] for key in ("ListenOverflows", "ListenDrops")}
+    except (OSError, ValueError, KeyError, IndexError):
+        pass
+    return None
+
+
+def counter_delta(before, after):
+    if before is None or after is None or any(after[key] < before[key] for key in before):
+        return {"available": False}
+    return {"available": True, "before": before, "after": after,
+            "delta": {key: after[key] - before[key] for key in before},
+            "scope": "network_namespace", "window": "warmup_and_measured_requests"}
+
+
 def comparison_rows(reports):
     rows = []
     summaries = {label: {row["concurrency"]: row for row in report["summary"]}
@@ -105,9 +143,13 @@ def main():
     parser.add_argument("--concurrency", type=int, nargs="+", default=[1, 10, 50, 100])
     parser.add_argument("--repeat", type=int, default=3)
     parser.add_argument("--timeout", type=float, default=1.0)
+    parser.add_argument("--backlog", type=int, default=1,
+                        help="Requested listen backlog for both servers (default: 1)")
     args = parser.parse_args()
     if not 0 <= args.port <= 65535:
         parser.error("--port must be between 0 and 65535")
+    if not 1 <= args.backlog <= 2147483647:
+        parser.error("--backlog must be a positive 32-bit int")
     if args.requests <= 0 or args.repeat <= 0 or args.warmup < 0:
         parser.error("requests/repeat must be positive; warmup must be nonnegative")
     if not math.isfinite(args.timeout) or args.timeout <= 0:
@@ -130,12 +172,13 @@ def main():
     args.output_dir.mkdir(parents=True, exist_ok=True)
     configuration = {"host": "127.0.0.1", "requests": args.requests, "warmup": args.warmup,
                      "concurrency": args.concurrency, "repeat": args.repeat,
-                     "timeout_s": args.timeout, "quiet": True, "backlog": 1,
+                     "timeout_s": args.timeout, "quiet": True, "backlog": args.backlog,
                      "reuse_address": True, "fresh_process_per_run": True,
                      "request": "SCHEDULE_NEXT\n", "expected_response": "SCHEDULE_NONE\n",
                      "request_bytes": 14, "response_bytes": 14,
                      "command": [sys.executable, *sys.argv]}
-    notes = "Release; quiet; backlog=1; SO_REUSEADDR; fresh server each run; alternating order"
+    notes = (f"Release; quiet; backlog={args.backlog}; SO_REUSEADDR; "
+             "fresh server each run; alternating order")
     reports = {label: {"schema_version": 1, "label": label + "-quiet",
                        "environment": benchmark.environment(SimpleNamespace(
                            server_binary=binary, notes=notes)),
@@ -152,6 +195,7 @@ def main():
                   "cmake": {key: cache.get(key) for key in (
                       "CMAKE_BUILD_TYPE", "CMAKE_CXX_COMPILER", "CMAKE_CXX_FLAGS",
                       "CMAKE_CXX_FLAGS_RELEASE")},
+                  "kernel_network_settings": kernel_network_settings(),
                   "execution_order": [], "aborted": None}
     selected_port = args.port
     interrupted = False
@@ -160,19 +204,23 @@ def main():
             for repeat in range(1, args.repeat + 1):
                 order = ("blocking", "epoll") if repeat % 2 else ("epoll", "blocking")
                 for label in order:
-                    log_path = build_dir / "tcp-comparison-logs" / f"c{concurrency}-r{repeat}-{label}.log"
-                    with ServerProcess(binaries[label], selected_port, log_path) as server:
+                    log_path = (build_dir / "tcp-comparison-logs" /
+                                f"b{args.backlog}-c{concurrency}-r{repeat}-{label}.log")
+                    with ServerProcess(binaries[label], selected_port, log_path,
+                                       backlog=args.backlog) as server:
                         selected_port = server.port
                         position = {"label": label, "concurrency": concurrency,
-                                    "repeat": repeat, "port": selected_port,
+                                    "repeat": repeat, "port": selected_port, "backlog": args.backlog,
                                     "server_command": server.command, "server_pid": server.process.pid,
                                     "stderr_log": str(log_path)}
                         comparison["execution_order"].append(position)
-                        print(f"Running {label}: clients={concurrency}, repeat={repeat}, "
+                        print(f"Running {label}: backlog={args.backlog}, clients={concurrency}, repeat={repeat}, "
                               f"port={selected_port}", flush=True)
+                        before = listen_counters()
                         run = benchmark.run_benchmark("127.0.0.1", selected_port, args.timeout,
                                                       args.requests, args.warmup, concurrency,
                                                       server.process.pid)
+                        run["listen_counters"] = counter_delta(before, listen_counters())
                         run["repeat"] = repeat
                         run["server_process"] = position
                         reports[label]["runs"].append(run)

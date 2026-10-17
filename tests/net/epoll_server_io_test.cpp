@@ -1,5 +1,6 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
+#include <poll.h>
 
 #include <array>
 #include <cerrno>
@@ -7,6 +8,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <string>
+#include <vector>
 
 #include "net/epoll_server.h"
 #include "net/unique_fd.h"
@@ -88,6 +90,38 @@ void testDisconnectWithPendingOutput() {
     require(shutdown(healthy.get(), SHUT_WR) == 0, "shutdown failed");
     require(drain(server, healthy.get()) == "OK\n", "disconnect stopped the event loop");
 }
+
+void testBacklogBeforeEventLoopStarts() {
+    EpollServer server(0, [](const std::string&) { return std::string("OK\n"); }, 128);
+    std::vector<UniqueFd> clients;
+    // 不运行事件循环，所有连接都在 listen 队列中；默认 backlog=1 无法容纳该突发。
+    for (int index = 0; index < 8; ++index) {
+        UniqueFd client(socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC, 0));
+        require(client.get() >= 0, "socket failed");
+        sockaddr_in address{};
+        address.sin_family = AF_INET;
+        address.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+        address.sin_port = htons(server.port());
+        const int connected = connect(client.get(), reinterpret_cast<const sockaddr*>(&address), sizeof(address));
+        require(connected == 0 || errno == EINPROGRESS, "nonblocking connect failed");
+        pollfd event{client.get(), POLLOUT, 0};
+        require(poll(&event, 1, 2000) == 1, "configured backlog did not hold queued connections");
+        int error = 0;
+        socklen_t length = sizeof(error);
+        require(getsockopt(client.get(), SOL_SOCKET, SO_ERROR, &error, &length) == 0 && error == 0,
+                "queued connection failed");
+        clients.push_back(std::move(client));
+    }
+    for (int backlog : {0, -1}) {
+        bool rejected = false;
+        try {
+            EpollServer invalid(0, [](const std::string&) { return std::string("OK\n"); }, backlog);
+        } catch (const std::invalid_argument&) {
+            rejected = true;
+        }
+        require(rejected, "nonpositive backlog must be rejected by server API");
+    }
+}
 }  // namespace
 
 int main() {
@@ -96,6 +130,8 @@ int main() {
         std::cout << "PASS: pending output resumes; slow reader isolation; response order; half-close\n";
         testDisconnectWithPendingOutput();
         std::cout << "PASS: disconnect while output is pending\n";
+        testBacklogBeforeEventLoopStarts();
+        std::cout << "PASS: configured backlog accepts queued burst before event loop; invalid backlog rejected\n";
     } catch (const std::exception& error) {
         std::cerr << "FAIL: " << error.what() << '\n';
         return 1;

@@ -114,7 +114,7 @@ runningJobs_（已交付，等待完成）
 
 ### LT epoll TCP 请求处理
 
-`scheduler_server_epoll` 使用同一份 `Scheduler` 和 `processSchedulerRequest()`，通过 `EpollServer` 管理网络。监听 socket 与 `accept4()` 得到的客户端 socket 均设置 `SOCK_NONBLOCK | SOCK_CLOEXEC`，`epoll_create1()` 创建事件实例，监听队列 backlog 暂时保持为 1。两版都在 bind 前设置 `SO_REUSEADDR`，便于在同一端口依次重启实验进程。网络事件循环单线程运行；业务状态继续通过原有 Scheduler API 访问。
+`scheduler_server_epoll` 使用同一份 `Scheduler` 和 `processSchedulerRequest()`，通过 `EpollServer` 管理网络。监听 socket 与 `accept4()` 得到的客户端 socket 均设置 `SOCK_NONBLOCK | SOCK_CLOEXEC`，`epoll_create1()` 创建事件实例，监听队列 backlog 默认 1，可通过 `--backlog` 配置。两版都在 bind 前设置 `SO_REUSEADDR`，便于在同一端口依次重启实验进程。网络事件循环单线程运行；业务状态继续通过原有 Scheduler API 访问。
 
 每个连接保存以下状态：
 
@@ -288,7 +288,7 @@ Worker 1: available CPU=2, memoryMB=4096
 ./build/scheduler_server_epoll --port 19000
 ```
 
-两种服务端现在均支持 `--port` 和 `--quiet`，例如 `./build/scheduler_server --port 19000 --quiet`。benchmark 支持 `--port 19000`；原有三个 C++ 客户端的端口仍固定为 9000。`--port 0` 可由系统分配空闲端口，实际地址会打印到启动日志，自动化测试使用此方式避免端口冲突。服务端均仅绑定 loopback。
+两种服务端均支持 `--port`、`--quiet` 和 `--backlog`，例如 `./build/scheduler_server --port 19000 --backlog 128 --quiet`。backlog 要求正 `int`，默认仍为 1，便于复现旧基线。benchmark 支持 `--port 19000`；原有三个 C++ 客户端的端口仍固定为 9000。`--port 0` 可由系统分配空闲端口，实际地址会打印到启动日志，自动化测试使用此方式避免端口冲突。服务端均仅绑定 loopback。
 
 ### 验证输入与错误处理
 
@@ -480,6 +480,8 @@ python3 tests/net/tcp_comparison_test.py ./build
 
 `tcp_comparison_tests` 验证两版 quiet/默认日志模式、参数校验、注册到完成的协议流程、同端口重启、每轮全新进程、交替运行顺序和原始结果保存。目标端口已被占用时，一键工具保存停止原因并退出；测试同时检查原有服务端仍可处理请求。`tcp_benchmark_tests` 还验证接收超时、连接拒绝和错误响应的失败阶段分类。
 
+backlog 实验新增了正值传递、0/负数/溢出/缺失/重复参数校验，以及内核计数解析、采样不可用和计数重置的处理。C++ I/O 测试在事件循环尚未运行时，使用 backlog=128 建立 8 个等待 accept 的连接，验证监听队列配置实际生效；Python 测试验证阻塞版被第一个空闲连接占住时，较大队列仍可容纳后续突发连接。这些测试验证排队容量，不把排队等同于请求处理并行。
+
 当前 CTest 会启动 C++ epoll 服务端验证网络集成；阻塞版的 5 秒超时配置和原 C++ 客户端进程的全部响应分支仍需手动验证。阻塞式 `sendAll()` 的部分发送分支及系统调用 `EINTR` 分支尚未由测试专门触发。
 
 ## Benchmark
@@ -618,6 +620,8 @@ python3 benchmarks/compare_tcp_servers.py --build-dir build \
 
 工具要求 Release 构建，每版共 12 轮、24 轮合计 24,000 次正式请求。首次自动选择空闲端口，此后两版都重用该端口；也可用 `--port` 指定端口。每轮启动全新空状态服务端、先做串行预热，再调用同一个压测函数。第 1、3 次重复先 blocking 后 epoll，第 2 次反过来；测量时仅有一个目标服务端运行。两版均为 backlog=1、`SO_REUSEADDR`、`--quiet`，成功/失败请求期间均无请求日志；工具检查启动后 stdout 和 stderr 确实为空。测试窗口相邻且交替执行，但 3 次重复无法完全消除系统负载和顺序偏差。
 
+对比工具现在支持 `--backlog <正 int>`，默认 1；该值同时传给两种服务端，写入配置和进程命令。新数据另记录 `somaxconn` 等内核设置，以及每轮预热开始前到正式请求结束后 `/proc/net/netstat` 中 `ListenOverflows/ListenDrops` 的前值、后值和增量。其范围是整个网络命名空间，包含预热，无法与单个服务端 PID 严格对应；读不到或计数倒退时明确记录 unavailable，不填造 0。stderr 文件名也包含 backlog，避免不同组实验互相覆盖日志。
+
 输出目录包含 `blocking.json`、`epoll.json` 和 `comparison.json`。前两份保存全部原始成功/失败样本和各轮 CPU/RSS，第三份记录配对顺序、端口、进程命令、源码/脚本/二进制哈希、CMake 构建选项和对比汇总。每轮都使用独立进程，因此内存指标是每轮进程从启动开始、包含预热的生命周期峰值；CPU 仍只覆盖正式测量采样窗口。stderr 日志位于 `build/tcp-comparison-logs/`。工具会停止自己启动的进程，即使请求失败也保存结果；存在请求失败时返回 1，启动或预热失败时另记录 `aborted`。
 
 本轮改动前提交为 `59cfcb5e30fd5991635f49db486b34c563903db2`。为统一条件，增加了共享端口/quiet 参数、共享默认请求日志和两版的地址复用配置；原阻塞 I/O、5 秒接收等待超时和 epoll 的事件处理预算保持原逻辑。新的分阶段失败记录应用于两版客户端测量，不与旧数据混用。
@@ -659,7 +663,61 @@ python3 benchmarks/compare_tcp_servers.py --build-dir build \
 
 吞吐也没有随并发数单调变化。epoll 并发 50 的三轮成功吞吐分别为 780.59、725.30、772.02 请求/秒，每轮有 1～2 次连接超时；并发 100 的三轮为 2109.42、2139.90、710.15 请求/秒，第三轮有 1 次连接超时。固定份额的闭环客户端中，即使仅少数请求等待 1 秒超时，也可能成为整轮最后完成的线程，明显拉长总测量时间。这些波动保留在原始数据中，未删除或补跑挑选更好的轮次。
 
-分阶段记录把失败集中定位在客户端的连接操作，但尚无抓包、内核队列计数或 CPU profiling，不能确定连接阶段内部各因素的贡献，也不能把成功延迟的增加归因于某个已证实的单一原因。下一项控制变量实验可独立比较 backlog=1 与较大 backlog，保持其他条件不变；当前数据不证明生产规模、复杂调度或真实 AI 工作负载下的收益。
+这一历史实验的分阶段记录把失败集中定位在客户端的连接操作，但当时没有抓包、内核队列计数或 CPU profiling，不能确定连接阶段内部各因素的贡献，也不能把成功延迟的增加归因于某个已证实的单一原因。下文独立改变 backlog 并增加监听队列计数采样；这些数据仍不证明生产规模、复杂调度或真实 AI 工作负载下的收益。
+
+#### backlog 控制变量实验
+
+Linux 的 TCP backlog 控制已完成连接建立、等待应用 `accept()` 的队列长度，超过 `somaxconn` 的请求值会被内核截断。它与未完成握手队列的 `tcp_max_syn_backlog` 不是同一个配置。增大 backlog 提供更多等待位置，应用仍需要及时 accept 和处理请求。[listen(2)](https://man7.org/linux/man-pages/man2/listen.2.html)
+
+本轮假设：将 backlog 从 1 提高到 128，在相同短连接负载下能减少连接阶段超时及监听队列溢出，尤其是串行接受连接的阻塞版。两版的线程模型、帧解析、读写预算、日志和请求内容均保持原逻辑。默认仍为 1，以保留原基线；通过显式参数做独立实验。
+
+在 Release 构建和全部 CTest 通过后，依次执行以下两条命令。需要空闲的 19000 端口；每组结束后工具会停止其创建的服务端。
+
+```bash
+python3 benchmarks/compare_tcp_servers.py --build-dir build --port 19000 \
+  --backlog 1 --requests 1000 --warmup 10 --concurrency 1 10 50 100 \
+  --repeat 3 --timeout 1 --output-dir build/backlog-experiment/backlog_1
+
+python3 benchmarks/compare_tcp_servers.py --build-dir build --port 19000 \
+  --backlog 128 --requests 1000 --warmup 10 --concurrency 1 10 50 100 \
+  --repeat 3 --timeout 1 --output-dir build/backlog-experiment/backlog_128
+```
+
+两组共 48 轮、48,000 次正式请求；每组内部仍交替测试两版，每轮使用新进程。两组使用同一端口、同一份二进制和相同驱动；先完整测 backlog=1 再测 128，因此组间时间顺序和未隔离的后台负载仍是限制。比较使用本轮新测的 backlog=1，历史结果保留供追溯。存在请求失败时工具返回 1 并保存完整数据。
+
+`ListenOverflows` 与监听队列满有关；`ListenDrops` 还可能包含其他监听路径丢弃。它们计数的是内核事件，重传和其他端口的流量也可能影响增量，不能把增量直接当作失败请求数。定义参考 [Linux 内核 SNMP 计数文档](https://docs.kernel.org/networking/snmp_counter.html)。本轮仅增加只读采样，不更改系统网络设置。
+
+原始数据保存在 [`benchmarks/results/backlog_experiment/`](benchmarks/results/backlog_experiment/)，实际命令仅把上面两个输出目录改为该路径下的 `backlog_1` 和 `backlog_128`。改动前提交为 `e27714d`；改动前后均通过 11/11 CTest，正式测量在改动后的测试通过后进行。环境仍是 WSL2 / Linux 6.6.87.2、Ryzen 7 6800H、GCC 13.3.0、Release `-O3 -DNDEBUG`。两组二进制及源码/驱动哈希一致，48 个服务端 PID 均不同，全部使用端口 19000。记录的内核设置为 `somaxconn=4096`、`tcp_max_syn_backlog=512`、`tcp_syncookies=1`、`tcp_abort_on_overflow=0`。
+
+成功吞吐取三轮中位数，失败数为每档三轮合计（每格分母 3000 次请求）：
+
+| 服务端 | 并发 | backlog=1 请求/秒 | backlog=128 请求/秒 | backlog=1 失败数 | backlog=128 失败数 |
+|---|---:|---:|---:|---:|---:|
+| blocking | 1 | 4564.40 | 5078.70 | 0 | 0 |
+| epoll | 1 | 4136.27 | 4776.92 | 0 | 0 |
+| blocking | 10 | 243.19 | 2030.91 | 49 | 0 |
+| epoll | 10 | 721.33 | 2007.74 | 5 | 0 |
+| blocking | 50 | 83.88 | 2031.40 | 745 | 0 |
+| epoll | 50 | 869.73 | 1985.79 | 1 | 0 |
+| blocking | 100 | 69.83 | 1935.63 | 1307 | 0 |
+| epoll | 100 | 847.67 | 1941.01 | 4 | 0 |
+
+backlog=1 时，blocking 总共 9899 次成功、2101 次连接超时，epoll 为 11990 次成功、10 次连接超时；backlog=128 时两版各 12,000 次成功、0 失败。两组均无中途停止，退出码分别为 1 和 0。新一轮 backlog=1 不完全复现历史轮次的数值，这是保留相邻实验基线的原因。
+
+backlog=1 的 blocking 采样窗口累计 `ListenOverflows=2287`、`ListenDrops=2287`，epoll 为 15、15；backlog=128 的全部采样窗口这两项增量均为 0。计数按网络命名空间采样，包含预热且可能受其他流量影响；大于客户端失败数不表示重复请求失败，二者不是相同计数对象。结合相同二进制的参数对照、连接阶段超时和溢出增量变化，这组数据支持：小监听队列是本机这组突发短连接实验的重要限制，不能把 backlog=1 下的大吞吐差距全部归因于 epoll。
+
+backlog=128 时，两版成功请求的延迟、CPU 三轮中位数如下。延迟单位为 ms，CPU 的 100% 表示一个逻辑核；每轮进程生命周期 RSS 峰值中位数均为 3200 KiB。
+
+| 并发 | blocking P50 | epoll P50 | blocking P95 | epoll P95 | blocking CPU % | epoll CPU % |
+|---:|---:|---:|---:|---:|---:|---:|
+| 1 | 0.152 | 0.156 | 0.233 | 0.222 | 40.59 | 52.50 |
+| 10 | 4.516 | 4.518 | 6.388 | 6.560 | 12.20 | 19.86 |
+| 50 | 22.130 | 21.951 | 31.808 | 36.003 | 14.21 | 20.11 |
+| 100 | 45.768 | 42.874 | 68.635 | 73.314 | 13.54 | 19.40 |
+
+队列增大后，并发 10～100 的两版吞吐接近，未观察到 epoll 在该正常短请求场景中的普遍吞吐优势。阻塞版成功 P95 比 backlog=1 时更高，但成功样本从大量失败后的子集变为全部请求，不能只比较条件分位数而忽略完成率。并发 1 的溢出计数两组均为 0，吞吐仍有变化，也说明组间时间顺序、客户端与系统调度等因素存在，不能把每个数值差异都算作 backlog 的收益。尚未采样客户端 CPU 或做 profiling，不判断约 2000 请求/秒的具体限制来自哪里。
+
+backlog 增大只改善排队容量；阻塞版仍会在一个客户端发不完请求时停在接收循环。epoll 的慢客户端隔离由现有集成测试独立验证。下一步可在固定 backlog=128 后加入明确比例的慢客户端负载，测量其他客户端的完成率与延迟，进一步区分队列容量和连接处理方式的作用。
 
 #### epoll 第一版验证记录
 

@@ -7,10 +7,11 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "benchmarks"))
-from compare_tcp_servers import ServerProcess
+from compare_tcp_servers import ServerProcess, counter_delta, listen_counters
 
 
 def request(port, payload):
@@ -57,7 +58,10 @@ class ComparisonTests(unittest.TestCase):
     def test_invalid_options(self):
         for label in ("blocking", "epoll"):
             for arguments in (("--port", "-1"), ("--port", "65536"), ("--port", "abc"),
-                              ("--port",), ("--bad",), ("--port", "0", "--port", "0")):
+                              ("--port",), ("--bad",), ("--port", "0", "--port", "0"),
+                              ("--backlog", "0"), ("--backlog", "-1"),
+                              ("--backlog", "2147483648"), ("--backlog", "abc"),
+                              ("--backlog",), ("--backlog", "1", "--backlog", "128")):
                 with self.subTest(label=label, arguments=arguments):
                     result = subprocess.run([str(self.binary(label)), *arguments],
                                             capture_output=True, text=True, timeout=3)
@@ -78,6 +82,7 @@ class ComparisonTests(unittest.TestCase):
             result = self.compare(output)
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             comparison = json.loads((output / "comparison.json").read_text())
+            self.assertEqual(comparison["configuration"]["backlog"], 1)
             self.assertIsNone(comparison["aborted"])
             order = comparison["execution_order"]
             self.assertEqual(len({item["port"] for item in order}), 1)
@@ -92,6 +97,58 @@ class ComparisonTests(unittest.TestCase):
                     self.assertEqual(run["failed"], 0)
                     self.assertEqual(run["server_stdout_after_startup"], "")
                     self.assertEqual(run["server_stderr_bytes"], 0)
+
+    def test_custom_backlog_is_used_and_recorded(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory)
+            result = self.compare(output, "--backlog", "128")
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            comparison = json.loads((output / "comparison.json").read_text())
+            self.assertEqual(comparison["configuration"]["backlog"], 128)
+            self.assertIn("core/somaxconn", comparison["kernel_network_settings"])
+            for item in comparison["execution_order"]:
+                self.assertEqual(item["backlog"], 128)
+                command = item["server_command"]
+                self.assertEqual(command[command.index("--backlog") + 1], "128")
+            for label in ("blocking", "epoll"):
+                raw = json.loads((output / f"{label}.json").read_text())
+                for run in raw["runs"]:
+                    counters = run["listen_counters"]
+                    if counters["available"]:
+                        self.assertEqual(counters["scope"], "network_namespace")
+                        self.assertEqual(counters["window"], "warmup_and_measured_requests")
+                        self.assertTrue(all(value >= 0 for value in counters["delta"].values()))
+
+    def test_blocking_backlog_can_hold_a_burst_while_one_client_is_incomplete(self):
+        # 阻塞版接受第一个空闲连接后停在 recv，后续连接只能在内核排队。
+        # 只验证突发连接可排队；不把它当作慢客户端隔离能力。
+        with tempfile.TemporaryDirectory() as directory:
+            with ServerProcess(self.binary("blocking"), 0, Path(directory) / "queue.log",
+                               backlog=128) as server:
+                clients = []
+                try:
+                    for _ in range(8):
+                        clients.append(socket.create_connection(("127.0.0.1", server.port), timeout=2))
+                    self.assertEqual(len(clients), 8)
+                finally:
+                    for client in clients:
+                        client.close()
+
+    def test_counter_parsing_and_unavailable_data(self):
+        sample = ("IpExt: A\nIpExt: 0\n"
+                  "TcpExt: Other ListenDrops ListenOverflows\nTcpExt: 99 12 8\n")
+        with patch("pathlib.Path.read_text", return_value=sample):
+            self.assertEqual(listen_counters(), {"ListenOverflows": 8, "ListenDrops": 12})
+        with patch("pathlib.Path.read_text", side_effect=OSError("unavailable")):
+            self.assertIsNone(listen_counters())
+        self.assertFalse(counter_delta(None, {"ListenOverflows": 8})["available"])
+        self.assertFalse(counter_delta({"ListenOverflows": 8}, {"ListenOverflows": 0})["available"])
+
+    def test_invalid_comparison_backlog_is_rejected(self):
+        with tempfile.TemporaryDirectory() as directory:
+            for value in ("0", "-1", "2147483648"):
+                result = self.compare(Path(directory), "--backlog", value)
+                self.assertEqual(result.returncode, 2)
 
     def test_occupied_port_aborts_and_preserves_existing_server(self):
         with tempfile.TemporaryDirectory() as directory:

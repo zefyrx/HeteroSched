@@ -24,8 +24,9 @@ constexpr int kAcceptBudget = 64;
 bool wouldBlock() { return errno == EAGAIN || errno == EWOULDBLOCK; }
 }  // namespace
 
-EpollServer::EpollServer(std::uint16_t port, RequestHandler handler)
+EpollServer::EpollServer(std::uint16_t port, RequestHandler handler, int backlog)
     : handler_(std::move(handler)) {
+    if (backlog <= 0) throw std::invalid_argument("backlog must be positive");
     listener_ = UniqueFd(socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC, 0));
     if (listener_.get() < 0) fail("socket");
     epoll_ = UniqueFd(epoll_create1(EPOLL_CLOEXEC));
@@ -42,7 +43,7 @@ EpollServer::EpollServer(std::uint16_t port, RequestHandler handler)
     address.sin_port = htons(port);
     if (bind(listener_.get(), reinterpret_cast<const sockaddr*>(&address), sizeof(address)) < 0)
         fail("bind");
-    if (listen(listener_.get(), 1) < 0) fail("listen");
+    if (listen(listener_.get(), backlog) < 0) fail("listen");
     socklen_t length = sizeof(address);
     if (getsockname(listener_.get(), reinterpret_cast<sockaddr*>(&address), &length) < 0)
         fail("getsockname");

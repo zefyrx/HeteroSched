@@ -14,8 +14,8 @@ class EpollServer {
 public:
     using RequestHandler = std::function<std::string(const std::string&)>;
 
-    // port=0 由系统选择空闲端口；backlog 保持与阻塞版一致为 1。
-    EpollServer(std::uint16_t port, RequestHandler handler);
+    // port=0 由系统选择空闲端口；backlog 默认 1，以复现原基线。
+    EpollServer(std::uint16_t port, RequestHandler handler, int backlog = 1);
     std::uint16_t port() const noexcept { return port_; }
     void run();
     void pollOnce(int timeoutMs = -1);
