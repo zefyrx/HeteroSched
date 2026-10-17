@@ -154,6 +154,29 @@ Linux 接口语义参考 [epoll(7)](https://man7.org/linux/man-pages/man7/epoll.
 
 阻塞入口不支持该参数，传入会报错，仍沿用单次 `recv()` 的 5 秒超时。原对比工具不传此参数，默认关闭空闲清理；历史 benchmark 和原始数据保留，不把启用超时后的结果与旧条件直接比较。
 
+### epoll 连接数量上限
+
+空闲超时不能回收持续收发数据的连接。epoll 入口新增 `--max-connections`，范围为 `0..2147483647`，默认 `0` 不限制；例如最多保留 128 条客户端连接，并回收连续 5 秒没有收发字节的连接：
+
+```bash
+./build/scheduler_server_epoll --port 9000 --backlog 128 \
+  --max-connections 128 --idle-timeout-ms 5000 --quiet
+```
+
+`acceptReady()` 在 `accept4()` 成功后检查连接表大小。达到上限时，由临时 `UniqueFd` 立即关闭新 socket，不创建连接状态或缓冲区、不注册客户端 epoll 事件、不读取请求，也不调用协议 handler。没有额外的 BUSY 响应；客户端可能已完成握手，随后观察到 EOF 或 TCP reset，不能将其理解为 `connect()` 一定失败。原 Worker 客户端遇到通信失败仍会退出，不自动重试。
+
+达到上限不会关闭已有连接；持久连接仍可继续提交请求。半关闭但输出尚未发送完毕的连接仍占名额，正常结束、reset、超长帧清理或空闲超时后才释放。计数直接使用 `connections_.size()`，无需维护易失配的额外计数器。每次接受或拒绝都计入现有每轮 64 次 accept 预算；持续就绪的监听 socket 仍以 LT 方式通知。相同批次中若先处理新连接、后处理旧连接关闭，新连接可能先被拒绝；名额按检查时的实际状态决定，不保证排队公平或自动重试。
+
+| 配置 | 限制对象 |
+|---|---|
+| `--backlog` | 内核中等待应用 accept 的已建立连接队列，请求值还受内核设置影响 |
+| `--max-connections` | 应用保留的客户端连接状态数量 |
+| `--idle-timeout-ms` | 已接受连接连续没有成功收发字节的时间 |
+
+本轮采用接受后立即关闭的策略，没有暂停监听事件来等待名额。连接上限检查为 O(1)，但拒绝仍有 accept/close 成本，不是请求速率限制；本轮没有测量吞吐或拒绝速率。上限不包含监听 socket、epoll、日志等 fd，拒绝过程中也会短暂多持有一个新 socket，因此需要给进程 fd 限制留出余量。它不保证系统 fd 耗尽后的恢复，`accept4()` 的 `EMFILE/ENFILE` 仍按现有错误路径结束服务端；也不限制 Worker/Job 总数或调度队列长度。
+
+该参数仅用于 epoll 入口，阻塞入口传入会报错。对比工具默认不设置上限，原始 benchmark 条件和历史数据保留。
+
 ## 已实现功能
 
 - C++17 和 CMake 构建
@@ -194,6 +217,7 @@ Linux 接口语义参考 [epoll(7)](https://man7.org/linux/man-pages/man7/epoll.
 - 每连接输入输出缓冲、部分发送续传、输出背压和每轮 I/O 预算
 - 单连接多条请求、半关闭后响应发送及断开清理
 - epoll 可配置连接空闲超时，成功收发续期、到期释放 fd 和连接缓冲区，默认关闭
+- epoll 可配置客户端连接数量上限，超额连接立即关闭、已有连接继续服务，默认不限制
 - 真实 C++ epoll 服务端集成测试，验证慢客户端隔离与并发领取/完成记账
 
 如果 FIFO 队首 Job 无法在任何 Worker 上运行，它会继续留在队列中，后续 Job 不会越过它。这保持了严格 FIFO，但也可能造成队头阻塞（head-of-line blocking）。
@@ -498,7 +522,7 @@ python3 tests/net/tcp_comparison_test.py ./build
 
 空闲超时测试向 `EpollServer` 注入可控的单调时钟，验证截止前 1 ms 保持连接、恰好到期关闭、未完成请求不交给 handler、分段接收与正字节发送续期、独立截止时间、同时到期、积压输出清理、禁用配置及非法参数。测试推进逻辑时间，不用固定休眠等待超时。真实服务端集成测试另验证无网络事件时计时唤醒、持久连接响应后及半条请求的超时清理、连接超时不重复释放 Job 资源，以及 32 条完成请求的持久连接到期后服务端 `/proc/<PID>/fd` 数从初始值加 32 回到初始值，再正常处理新请求。CLI 覆盖负数、溢出、非数字、后缀、缺值、重复参数及显式 0；阻塞版拒绝该选项。
 
-本轮基线为提交 `d530c92`，改动前后 Release 构建及 11/11 CTest 均通过；新增 fd 回收用例也单独通过。使用下面的既有检查命令，对两个 epoll 测试运行 `-Wall -Wextra -Wpedantic`、AddressSanitizer 和 UndefinedBehaviorSanitizer，均通过且没有编译警告或 sanitizer 报告：
+空闲超时阶段基线为提交 `d530c92`，改动前后 Release 构建及 11/11 CTest 均通过；新增 fd 回收用例也单独通过。使用下面的既有检查命令，对两个 epoll 测试运行 `-Wall -Wextra -Wpedantic`、AddressSanitizer 和 UndefinedBehaviorSanitizer，均通过且没有编译警告或 sanitizer 报告：
 
 ```bash
 cmake -S . -B build/epoll-check -DCMAKE_BUILD_TYPE=Debug \
@@ -509,6 +533,10 @@ ctest --test-dir build/epoll-check --output-on-failure -R '^epoll_server_'
 ```
 
 `tcp_comparison_tests` 验证两版 quiet/默认日志模式、参数校验、注册到完成的协议流程、同端口重启、每轮全新进程、交替运行顺序和原始结果保存。目标端口已被占用时，一键工具保存停止原因并退出；测试同时检查原有服务端仍可处理请求。`tcp_benchmark_tests` 还验证接收超时、连接拒绝和错误响应的失败阶段分类。
+
+连接上限测试在 cap=2 时保持两条连接，再让 96 条携带请求的连接排队；跨两轮 accept 拒绝超额连接，同时验证已有连接继续得到响应、拒绝的请求未调用 handler。另覆盖半关闭且积压 8 MiB 输出时仍占名额，完整发送后释放，以及 reset 和可控时钟超时后的名额恢复。真实服务端测试保持两条连接，拒绝 16 次 Job 提交后仍能在已有连接上首次提交同一 ID、领取及完成，并拒绝重复完成；稳定状态下服务端 fd 数为初始值加 2，全部关闭后回到初始值。CLI 覆盖负数、溢出、非数字、后缀、小数、缺值、重复参数、显式 0 和最大合法 int，以及阻塞入口拒绝该选项。测试以响应、EOF/reset 和手动推进事件循环同步，不使用固定休眠。
+
+连接上限阶段基线为提交 `ff9ebba`；改动前后均运行 `cmake -S . -B build -DCMAKE_BUILD_TYPE=Release`、`cmake --build build --parallel 2` 和 `ctest --test-dir build --output-on-failure`，11/11 CTest 通过。沿用上面的 sanitizer 命令，两个 epoll 测试 2/2 通过，没有编译警告或 ASan/UBSan 报告；集成测试检查 quiet 模式下子进程 stdout/stderr 为空。本轮验证连接数量约束、拒绝行为和资源恢复，没有新增性能测量。
 
 backlog 实验新增了正值传递、0/负数/溢出/缺失/重复参数校验，以及内核计数解析、采样不可用和计数重置的处理。C++ I/O 测试在事件循环尚未运行时，使用 backlog=128 建立 8 个等待 accept 的连接，验证监听队列配置实际生效；Python 测试验证阻塞版被第一个空闲连接占住时，较大队列仍可容纳后续突发连接。这些测试验证排队容量，不把排队等同于请求处理并行。
 
@@ -825,7 +853,7 @@ ctest --test-dir build/epoll-check --output-on-failure -R '^epoll_server_'
 ## 当前限制
 
 - 阻塞版串行处理连接，单次接收等待最多约 5 秒，没有整个请求的截止时间；持续缓慢发送字节可能长时间阻塞后续处理
-- epoll 空闲清理默认关闭；启用后每轮 O(N) 扫描，持续补字节的慢连接仍可续期，尚无整个请求的总截止时间、连接总数配额或优雅停机，也未处理 fd 耗尽后的恢复
+- epoll 空闲清理和连接上限默认关闭；空闲检查每轮 O(N) 扫描，持续补字节的慢连接仍可续期，尚无整个请求的总截止时间或优雅停机，也未处理 fd 耗尽后的恢复；超额连接直接关闭，没有业务错误响应或自动重试
 - epoll 的每轮预算与输出高水位只限制网络处理，协议处理仍在事件循环中同步执行；大规模调度计算也可能影响其他客户端延迟
 - Worker 状态、等待 Job 与运行记录仅保存在内存中，服务端退出后消失
 - Worker 退出不会注销；待派发任务和运行记录可能长期保留，资源不会自动回收

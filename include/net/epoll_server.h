@@ -19,9 +19,10 @@ public:
 
     // port=0 由系统选择空闲端口；backlog 默认 1，以复现原基线。
     // idleTimeout=0 关闭空闲清理；now 必须单调，测试可注入可控时钟。
+    // maxConnections=0 不限制；否则只保留至多指定数量的客户端状态。
     EpollServer(std::uint16_t port, RequestHandler handler, int backlog = 1,
                 std::chrono::milliseconds idleTimeout = std::chrono::milliseconds{0},
-                Now now = Clock::now);
+                int maxConnections = 0, Now now = Clock::now);
     std::uint16_t port() const noexcept { return port_; }
     void run();
     void pollOnce(int timeoutMs = -1);
@@ -45,6 +46,7 @@ private:
     UniqueFd epoll_;
     RequestHandler handler_;
     std::chrono::milliseconds idleTimeout_;
+    int maxConnections_;
     Now now_;
     std::uint16_t port_ = 0;
     // 使用连接代号而非裸 fd，避免同批事件里的旧事件命中复用后的 fd。

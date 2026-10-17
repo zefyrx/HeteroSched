@@ -241,6 +241,75 @@ class EpollIntegrationTests(unittest.TestCase):
         self.start_server("--idle-timeout-ms", "0")
         self.assertEqual(self.request(b"SCHEDULE_NEXT"), b"SCHEDULE_NONE\n")
 
+    def rejected(self, peer, payload=b""):
+        try:
+            if payload:
+                peer.send(payload)
+        except (BrokenPipeError, ConnectionResetError):
+            pass  # 服务端可能在发送之前已关闭。
+        try:
+            peer.eof()
+        except ConnectionResetError:
+            pass  # 带未读请求的连接被关闭时，允许 TCP reset。
+        peer.close()
+
+    def test_connection_limit_rejects_without_mutation_and_releases_fds(self):
+        self.stop_server()
+        self.start_server("--backlog", "128", "--max-connections", "2")
+        descriptors = Path(f"/proc/{self.server.pid}/fd")
+        initial = len(list(descriptors.iterdir()))
+        first, second = self.peer(), self.peer()
+        first.send(b"REGISTER_WORKER 1 1 1\n")
+        self.assertEqual(first.line(), b"REGISTER_OK\n")
+        second.send(b"SCHEDULE_NEXT\n")
+        self.assertEqual(second.line(), b"SCHEDULE_NONE\n")
+        for _ in range(16):
+            self.rejected(self.peer(), b"SUBMIT_JOB 91 1 1\n")
+        self.assertEqual(len(list(descriptors.iterdir())), initial + 2)
+        first.send(b"SUBMIT_JOB 91 1 1\n")
+        self.assertEqual(first.line(), b"SUBMIT_OK\n")  # 拒绝的请求未入队或占用 ID。
+        second.send(b"FETCH_JOB 1\nCOMPLETE_JOB 91\nCOMPLETE_JOB 91\n")
+        self.assertEqual(second.line(), b"RUN_JOB 91 1 1\n")
+        self.assertEqual(second.line(), b"COMPLETE_OK\n")
+        self.assertEqual(second.line(), b"COMPLETE_ERROR COMPLETION_REJECTED\n")
+        first.socket.shutdown(socket.SHUT_WR)
+        first.eof()  # EOF 确认服务端已关闭并腾出名额，不靠休眠等待。
+        replacement = self.peer()
+        replacement.send(b"REGISTER_WORKER 2 1 1\n")
+        self.assertEqual(replacement.line(), b"REGISTER_OK\n")
+        for peer in (second, replacement):
+            peer.socket.shutdown(socket.SHUT_WR)
+            peer.eof()
+        self.assertEqual(len(list(descriptors.iterdir())), initial)
+        self.assertEqual(self.request(b"SCHEDULE_NEXT"), b"SCHEDULE_NONE\n")
+
+    def test_connection_limit_slot_reopens_after_idle_timeout(self):
+        self.stop_server()
+        self.start_server("--max-connections", "1", "--idle-timeout-ms", "150")
+        partial = self.peer()
+        partial.send(b"SCHEDULE_NEXT\nSUBMIT_JOB 92 ")
+        self.assertEqual(partial.line(), b"SCHEDULE_NONE\n")  # 已接受，但尾行未完成。
+        self.rejected(self.peer())
+        partial.eof()
+        self.assertEqual(self.request(b"SUBMIT_JOB 92 1 1"), b"SUBMIT_OK\n")
+
+    def test_connection_limit_arguments_and_disabled_limit(self):
+        for options in (("--max-connections", "-1"), ("--max-connections", "2147483648"),
+                        ("--max-connections", "abc"), ("--max-connections", "1x"),
+                        ("--max-connections", "1.5"), ("--max-connections",),
+                        ("--max-connections", "1", "--max-connections", "2")):
+            result = subprocess.run([SERVER_BINARY, *options], capture_output=True, text=True, timeout=3)
+            self.assertEqual(result.returncode, 1)
+            self.assertNotIn("Listening", result.stdout)
+        for value in ("0", "2147483647"):
+            self.stop_server()
+            self.start_server("--backlog", "128", "--max-connections", value)
+            peers = [self.peer() for _ in range(4)]
+            for peer in peers:
+                peer.send(b"SCHEDULE_NEXT\n")
+                self.assertEqual(peer.line(), b"SCHEDULE_NONE\n")
+                peer.close()
+
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:

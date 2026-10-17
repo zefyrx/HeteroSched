@@ -70,9 +70,10 @@ class ComparisonTests(unittest.TestCase):
                                             capture_output=True, text=True, timeout=3)
                     self.assertEqual(result.returncode, 1)
                     self.assertNotIn("Listening", result.stdout)
-        result = subprocess.run([str(self.binary("blocking")), "--idle-timeout-ms", "1000"],
-                                capture_output=True, text=True, timeout=3)
-        self.assertEqual(result.returncode, 1)  # 阻塞版不能静默接受一个不会生效的选项。
+        for option in ("--idle-timeout-ms", "--max-connections"):
+            result = subprocess.run([str(self.binary("blocking")), option, "1000"],
+                                    capture_output=True, text=True, timeout=3)
+            self.assertEqual(result.returncode, 1)  # 阻塞版不能静默接受一个不会生效的选项。
 
     def compare(self, output, *arguments):
         return subprocess.run([

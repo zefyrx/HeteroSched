@@ -15,7 +15,7 @@ int main(int argc, char* argv[]) {
             const auto response = processSchedulerRequest(line, scheduler);
             if (!options.quiet) logSchedulerRequest(line, response, scheduler);
             return response;
-        }, options.backlog, std::chrono::milliseconds{options.idleTimeoutMs});
+        }, options.backlog, std::chrono::milliseconds{options.idleTimeoutMs}, options.maxConnections);
         std::cout << "Listening on 127.0.0.1:" << server.port() << std::endl;
         server.run();
     } catch (const std::exception& error) {

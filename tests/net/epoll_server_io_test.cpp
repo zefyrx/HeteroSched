@@ -20,7 +20,7 @@ void require(bool condition, const char* message) {
     if (!condition) throw std::runtime_error(message);
 }
 
-UniqueFd connectTo(EpollServer& server) {
+UniqueFd connectTo(EpollServer& server, bool pollListener = true) {
     UniqueFd client(socket(AF_INET, SOCK_STREAM | SOCK_CLOEXEC, 0));
     require(client.get() >= 0, "socket failed");
     sockaddr_in address{};
@@ -30,7 +30,7 @@ UniqueFd connectTo(EpollServer& server) {
     require(connect(client.get(), reinterpret_cast<const sockaddr*>(&address), sizeof(address)) == 0,
             "connect failed");
     // 先接受连接，避免测试被 backlog=1 限制影响。
-    server.pollOnce(0);
+    if (pollListener) server.pollOnce(0);
     return client;
 }
 
@@ -50,6 +50,15 @@ void requireEof(int fd) {
     require(poll(&event, 1, 2000) == 1, "expired connection did not become readable");
     char byte;
     require(recv(fd, &byte, 1, MSG_DONTWAIT) == 0, "expired connection did not close");
+}
+
+void requireRejected(int fd) {
+    pollfd event{fd, POLLIN, 0};
+    require(poll(&event, 1, 2000) == 1, "over-limit connection was not closed");
+    char byte;
+    const auto count = recv(fd, &byte, 1, MSG_DONTWAIT);
+    require(count == 0 || (count < 0 && errno == ECONNRESET),
+            "over-limit connection received data or remained open");
 }
 
 std::string readLine(int fd) {
@@ -154,7 +163,7 @@ void testIdleDeadlineAndIncompleteRequest() {
     auto now = Clock::time_point{};
     int handled = 0;
     EpollServer server(0, [&](const std::string&) { ++handled; return std::string("OK\n"); },
-                       1, std::chrono::milliseconds{100}, [&] { return now; });
+                       1, std::chrono::milliseconds{100}, 0, [&] { return now; });
     auto silent = connectTo(server);
     now += std::chrono::milliseconds{99};
     server.pollOnce(0);
@@ -179,7 +188,7 @@ void testIdleDeadlineAndIncompleteRequest() {
 void testActivityRenewsIdleDeadline() {
     auto now = Clock::time_point{};
     EpollServer server(0, [](const std::string&) { return std::string("OK\n"); },
-                       1, std::chrono::milliseconds{100}, [&] { return now; });
+                       1, std::chrono::milliseconds{100}, 0, [&] { return now; });
     auto client = connectTo(server);
     now += std::chrono::milliseconds{60};
     sendRequest(client.get(), "PI");
@@ -201,7 +210,7 @@ void testActivityRenewsIdleDeadline() {
 void testIndependentIdleDeadlines() {
     auto now = Clock::time_point{};
     EpollServer server(0, [](const std::string&) { return std::string("OK\n"); },
-                       1, std::chrono::milliseconds{100}, [&] { return now; });
+                       1, std::chrono::milliseconds{100}, 0, [&] { return now; });
     auto first = connectTo(server);
     now += std::chrono::milliseconds{50};
     auto second = connectTo(server);
@@ -223,7 +232,7 @@ void testPendingWritesRenewAndEventuallyExpire() {
     const std::string large(8 * 1024 * 1024, 'z');
     auto now = Clock::time_point{};
     EpollServer server(0, [&](const std::string&) { return large; },
-                       1, std::chrono::milliseconds{100}, [&] { return now; });
+                       1, std::chrono::milliseconds{100}, 0, [&] { return now; });
     auto active = connectTo(server);
     sendRequest(active.get(), "BIG\n");
     require(shutdown(active.get(), SHUT_WR) == 0, "shutdown failed");
@@ -248,7 +257,7 @@ void testPendingWritesRenewAndEventuallyExpire() {
 void testIdleTimeoutDisabledAndInvalidOptions() {
     auto now = Clock::time_point{};
     EpollServer server(0, [](const std::string&) { return std::string("OK\n"); },
-                       1, std::chrono::milliseconds{0}, [&] { return now; });
+                       1, std::chrono::milliseconds{0}, 0, [&] { return now; });
     auto client = connectTo(server);
     now += std::chrono::hours{24};
     server.pollOnce(0);
@@ -267,9 +276,95 @@ void testIdleTimeoutDisabledAndInvalidOptions() {
     bool rejected = false;
     try {
         EpollServer invalid(0, [](const std::string&) { return std::string(); },
-                            1, std::chrono::milliseconds{100}, EpollServer::Now{});
+                            1, std::chrono::milliseconds{100}, 0, EpollServer::Now{});
     } catch (const std::invalid_argument&) { rejected = true; }
     require(rejected, "empty clock was accepted");
+}
+
+void testConnectionLimitAndRejectedBurst() {
+    int handled = 0;
+    EpollServer server(0, [&](const std::string&) { ++handled; return std::string("OK\n"); },
+                       128, std::chrono::milliseconds{0}, 2);
+    auto first = connectTo(server);
+    auto second = connectTo(server);
+    for (int fd : {first.get(), second.get()}) {
+        sendRequest(fd, "PING\n");
+        server.pollOnce(0);
+        require(readLine(fd) == "OK\n", "connection at capacity was rejected");
+    }
+    std::vector<UniqueFd> excess;
+    // 96 个连接先在 backlog=128 排队，超过单轮 accept 预算 64。
+    for (int index = 0; index < 96; ++index) {
+        auto client = connectTo(server, false);
+        sendRequest(client.get(), "PING\n");
+        excess.push_back(std::move(client));
+    }
+    server.pollOnce(0);
+    sendRequest(first.get(), "PING\n");
+    server.pollOnce(0);
+    require(readLine(first.get()) == "OK\n", "rejected burst blocked an existing client");
+    for (const auto& client : excess) requireRejected(client.get());
+    require(handled == 3, "rejected connection reached request handler");
+
+    require(shutdown(first.get(), SHUT_WR) == 0, "shutdown failed");
+    server.pollOnce(0);
+    requireEof(first.get());
+    auto replacement = connectTo(server);
+    sendRequest(replacement.get(), "PING\n");
+    server.pollOnce(0);
+    require(readLine(replacement.get()) == "OK\n", "disconnect did not release a slot");
+    sendRequest(second.get(), "PING\n");
+    server.pollOnce(0);
+    require(readLine(second.get()) == "OK\n", "slot recovery affected another connection");
+}
+
+void testPendingOutputHoldsConnectionSlot() {
+    const std::string large(8 * 1024 * 1024, 'q');
+    EpollServer server(0, [&](const std::string& line) {
+        return line == "BIG" ? large : std::string("OK\n");
+    }, 128, std::chrono::milliseconds{0}, 1);
+    auto slow = connectTo(server);
+    sendRequest(slow.get(), "BIG\n");
+    require(shutdown(slow.get(), SHUT_WR) == 0, "shutdown failed");
+    server.pollOnce(0);
+    auto rejected = connectTo(server);
+    requireRejected(rejected.get());
+    require(drain(server, slow.get()) == large, "capacity handling lost pending output");
+    auto replacement = connectTo(server);
+    sendRequest(replacement.get(), "PING\n");
+    require(shutdown(replacement.get(), SHUT_WR) == 0, "shutdown failed");
+    require(drain(server, replacement.get()) == "OK\n", "flushed output did not release slot");
+}
+
+void testResetAndIdleExpiryReleaseSlots() {
+    auto now = Clock::time_point{};
+    EpollServer server(0, [](const std::string&) { return std::string("OK\n"); },
+                       128, std::chrono::milliseconds{100}, 1, [&] { return now; });
+    auto resetClient = connectTo(server);
+    linger reset{1, 0};
+    require(setsockopt(resetClient.get(), SOL_SOCKET, SO_LINGER, &reset, sizeof(reset)) == 0,
+            "setsockopt linger failed");
+    resetClient = UniqueFd();
+    server.pollOnce(0);
+    auto idle = connectTo(server);
+    sendRequest(idle.get(), "PING\n");
+    server.pollOnce(0);
+    require(readLine(idle.get()) == "OK\n", "reset did not release a slot");
+    auto excess = connectTo(server);
+    requireRejected(excess.get());
+    now += std::chrono::milliseconds{100};
+    server.pollOnce(0);
+    requireEof(idle.get());
+    auto replacement = connectTo(server);
+    sendRequest(replacement.get(), "PING\n");
+    server.pollOnce(0);
+    require(readLine(replacement.get()) == "OK\n", "idle expiry did not release a slot");
+    bool rejected = false;
+    try {
+        EpollServer invalid(0, [](const std::string&) { return std::string(); },
+                            1, std::chrono::milliseconds{0}, -1);
+    } catch (const std::invalid_argument&) { rejected = true; }
+    require(rejected, "negative connection limit was accepted");
 }
 }  // namespace
 
@@ -291,6 +386,12 @@ int main() {
         std::cout << "PASS: positive writes renew deadline, stalled output expires\n";
         testIdleTimeoutDisabledAndInvalidOptions();
         std::cout << "PASS: timeout disabled by default, invalid settings rejected\n";
+        testConnectionLimitAndRejectedBurst();
+        std::cout << "PASS: capacity boundary, 96 rejected clients, existing service and disconnect recovery\n";
+        testPendingOutputHoldsConnectionSlot();
+        std::cout << "PASS: half-closed connection holds slot until pending output is flushed\n";
+        testResetAndIdleExpiryReleaseSlots();
+        std::cout << "PASS: reset and idle expiry release slots; negative limit rejected\n";
     } catch (const std::exception& error) {
         std::cerr << "FAIL: " << error.what() << '\n';
         return 1;

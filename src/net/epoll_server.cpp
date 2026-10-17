@@ -26,9 +26,11 @@ bool wouldBlock() { return errno == EAGAIN || errno == EWOULDBLOCK; }
 }  // namespace
 
 EpollServer::EpollServer(std::uint16_t port, RequestHandler handler, int backlog,
-                         std::chrono::milliseconds idleTimeout, Now now)
-    : handler_(std::move(handler)), idleTimeout_(idleTimeout), now_(std::move(now)) {
+                         std::chrono::milliseconds idleTimeout, int maxConnections, Now now)
+    : handler_(std::move(handler)), idleTimeout_(idleTimeout),
+      maxConnections_(maxConnections), now_(std::move(now)) {
     if (backlog <= 0) throw std::invalid_argument("backlog must be positive");
+    if (maxConnections_ < 0) throw std::invalid_argument("max connections must be nonnegative");
     if (idleTimeout_.count() < 0 || idleTimeout_.count() > std::numeric_limits<int>::max())
         throw std::invalid_argument("idle timeout must be a nonnegative int in milliseconds");
     if (!now_) throw std::invalid_argument("monotonic clock is required");
@@ -69,6 +71,8 @@ void EpollServer::acceptReady() {
             if (wouldBlock()) return;
             fail("accept4");
         }
+        if (maxConnections_ > 0 && connections_.size() >= static_cast<std::size_t>(maxConnections_))
+            continue;  // UniqueFd 立即关闭；不创建缓冲区、不调用 handler，仍计入 accept 预算。
         const std::uint64_t token = nextToken_++;
         const auto acceptedAt = idleTimeout_.count() > 0 ? now_() : Clock::time_point{};
         auto [iterator, inserted] = connections_.try_emplace(token, std::move(client), acceptedAt);
