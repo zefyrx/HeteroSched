@@ -7,7 +7,7 @@
 **Primary Language:** C++  
 **Target Environment:** Linux / WSL2  
 **Build System:** CMake  
-**Current Progress:** **Phase 1 complete, including input-validation hardening**
+**Current Progress:** **The core scheduler and basic blocking TCP Scheduler/Worker workflow are implemented; the next focused improvement is a non-blocking epoll server with credible end-to-end benchmarks.**
 
 This project is intended to become the user's main undergraduate systems project and to support future applications for:
 
@@ -42,8 +42,9 @@ The user currently has:
 - coursework exposure to computer networks
 - coursework exposure to computer architecture
 - basic data structures and algorithms knowledge
-- limited real project experience
-- no completed project implementation yet
+- has implemented HeteroSched resource scheduling, multiple policies, mutex-protected shared state, CMake/CTest, a blocking TCP Scheduler/Worker workflow, protocol validation, and a repeatable scheduler benchmark
+- is currently learning Linux non-blocking I/O and epoll
+- has limited experience with production-scale systems and performance engineering
 
 Therefore, follow these rules strictly.
 
@@ -1050,38 +1051,56 @@ Codex should frequently connect implementation decisions to these interview ques
 
 ---
 
-# 16. What Counts as a Resume-Ready Version?
+# 16. Resume-Ready Criteria and Honest Positioning
 
-Do NOT claim the project is resume-ready after only defining classes.
+Do not use the same bar for an initial resume-ready project and a more advanced AI Infra project.
 
-A reasonable first resume-ready milestone should contain at least:
+## 16.1 Current Resume-Ready Baseline
 
-```text
-C++ scheduler
-Worker resource model
-Job queue
-2+ scheduling algorithms
-resource allocation/release
-multi-process or networked Scheduler/Worker
-worker registration
-heartbeat
-failure detection
-basic benchmark
-clear README
-Git history
-```
-
-A stronger AI Infra version should additionally contain some of:
+A credible initial version should include:
 
 ```text
-GPU resource model
-heterogeneous resource constraints
-topology-aware scheduling
-Kubernetes integration
-real inference workloads
-Prometheus metrics
-performance comparison
+C++ scheduler and CPU/memory resource model
+2+ scheduling policies
+resource allocation and release
+Scheduler/Worker communication over TCP
+worker registration and job lifecycle workflow
+input validation and protocol framing
+concurrency protection for shared scheduler state
+repeatable CTest coverage
+reproducible benchmark with documented workload
+clear README and build/run instructions
 ```
+
+Heartbeat, automatic failure recovery, GPU scheduling, Kubernetes integration, and production-grade scalability are valuable extensions, but they are NOT prerequisites for describing the current project honestly as a lightweight TCP-based resource-scheduling prototype.
+
+## 16.2 Stronger Systems Version
+
+Prioritize a small number of verifiable improvements:
+
+```text
+non-blocking TCP server using epoll
+correct per-connection input/output buffering
+concurrent-client integration tests
+end-to-end throughput and latency benchmark
+P50/P95 latency, error rate, and CPU usage measurements
+before/after comparison against the blocking baseline
+```
+
+## 16.3 Advanced AI Infra Version
+
+Only consider these after the systems optimization above is correct and measured:
+
+```text
+worker heartbeat and failure detection
+bounded task retry and duplicate-execution analysis
+GPU/GPU-memory resource model
+heterogeneous-resource-aware scheduling
+real inference workload integration
+Kubernetes or Prometheus integration when justified
+```
+
+Never claim a feature as implemented until it exists, is tested, and its limitations are documented. Prefer precise positioning such as "lightweight TCP-based resource scheduler prototype" over claiming a production-grade distributed heterogeneous scheduler.
 
 ---
 
@@ -1102,41 +1121,30 @@ Never fabricate progress.
 
 # 18. Immediate Starting Point
 
-The user is currently at:
+The original Phase 1 and basic TCP milestones are complete. Do not restart the project from the initial class skeleton or repeat the old Day 1 plan.
 
-```text
-Project progress: Phase 1 complete
-```
-
-Implemented and verified:
+Current implemented baseline includes:
 
 - CPU and memory resource model
 - Job and Worker domain models
-- Worker resource allocation and release
-- FIFO waiting queue and running Job tracking
-- FirstFit, BinPack and LeastAllocated scheduling policies
-- mutex-protected Scheduler state and concurrent completion simulation
-- repeatable benchmark and CTest coverage
-- Job and Worker input validation
-- independent uniqueness checks for Job IDs and Worker IDs
+- FIFO queue and FirstFit, BinPack, and LeastAllocated policies
+- resource reservation/allocation and release
+- Scheduler/Worker TCP workflow for registration, job submission, claiming, simulated execution, and completion reporting
+- newline-delimited text protocol with input validation and message-size limits
+- handling for partial sends and EINTR
+- mutex-protected shared scheduler state
+- CMake/CTest coverage and repeatable scheduler-policy benchmark
 
-Therefore the next task is **Phase 2.1 only: basic blocking TCP communication and one Worker registration message**.
+The next focused milestone is **non-blocking TCP I/O with epoll**, followed by a reproducible comparison against the existing blocking server.
 
-Start with one Scheduler server process and one Worker client process. Use a simple text message such as:
+Before changing the server:
 
-```text
-REGISTER_WORKER <workerId> <cpuCores> <memoryMB>\n
-```
+1. inspect the current repository and README instead of assuming the file layout;
+2. run the existing build and tests and record the baseline result;
+3. preserve the current blocking implementation or record a reproducible baseline commit so that comparisons are meaningful;
+4. implement the smallest epoll milestone that can be built and tested independently.
 
-The Scheduler should parse and validate the message before registering the Worker.
-
-Do not jump to GPU scheduling.
-
-Do not jump to Kubernetes.
-
-Do not introduce heartbeat, epoll, multiple concurrent clients, Protocol Buffers, gRPC, or automatic Job execution during Phase 2.1.
-
----
+Do not add GPU scheduling, Kubernetes, heartbeat/recovery, a thread pool, a new RPC framework, or unrelated features as part of the epoll milestone. Those are separate future decisions.
 
 # 19. Historical Day 1 Execution Plan — Completed
 
@@ -1365,9 +1373,117 @@ Every design decision should support that goal.
 
 # 23. Instruction to Start
 
-When this file is first read, begin with:
+When this file is first read, begin by checking the repository's actual state rather than blindly following historical milestones.
 
-> HeteroSched Phase 1 and its input-validation hardening are complete.
-> First verify that the existing build and tests still pass.
-> The next milestone is Phase 2.1: one blocking TCP Scheduler server, one Worker client, and one validated Worker registration message.
-> Do not add heartbeat, epoll, GPU scheduling, Kubernetes, or other later-stage features yet.
+> HeteroSched's core scheduler and basic blocking TCP workflow are already implemented. First inspect the code, run the current build and tests, and summarize the baseline. The next focused task is to design and implement a non-blocking epoll-based server in small, testable steps, then benchmark it against the blocking baseline. Do not restart Phase 1 or introduce unrelated AI Infra features before this work is validated.
+
+---
+
+# 24. Focused Optimization Roadmap: epoll and Non-Blocking TCP
+
+The goal is to demonstrate systems-engineering depth through correctness, concurrency, and measurement—not to maximize the number of features.
+
+## 24.1 Milestone A — Establish a Baseline First
+
+Before modifying the server:
+
+- build the current project and run all CTest tests;
+- record the exact command, environment, and test result;
+- create or preserve a reproducible blocking-server benchmark;
+- measure the existing implementation with multiple clients where possible;
+- keep the existing scheduler-policy benchmark separate from the network-service benchmark.
+
+Do not invent or estimate performance numbers. If a metric is not measured, label it as unavailable.
+
+## 24.2 Milestone B — Implement the Smallest Correct epoll Server
+
+Use a staged implementation. Explain each stage before coding.
+
+1. Set the listening socket to non-blocking mode.
+2. Create an epoll instance and register the listening socket.
+3. Accept connections when the listening socket is readable; set each accepted client socket to non-blocking mode.
+4. Start with **level-triggered (LT) epoll**. Do not begin with edge-triggered (ET) mode unless LT is complete, tested, and there is a measured reason to add ET complexity.
+5. Maintain per-connection state, including an input buffer, an output buffer, and the current output offset.
+6. Read available bytes until `EAGAIN`/`EWOULDBLOCK`, while correctly handling `EINTR`, EOF, and other errors.
+7. Parse newline-delimited messages from the connection's input buffer. Support a message split across multiple reads and multiple complete messages arriving in one read. Enforce the existing protocol's maximum message length.
+8. Handle partial writes: retain unsent bytes and resume when the socket becomes writable. Register `EPOLLOUT` only while output remains pending to avoid a busy loop.
+9. Handle disconnect and error events (`EPOLLRDHUP`, `EPOLLHUP`, `EPOLLERR` as applicable) and remove/close the connection safely.
+10. Ensure no client-specific operation can block the event loop. Do not rely on blocking `recv()` or `SO_RCVTIMEO` for readiness handling in the epoll path.
+
+Keep the event loop single-threaded initially unless the existing architecture requires otherwise. Do not add a thread pool just to make the server appear more advanced. Reuse the existing Scheduler API and its synchronization model; do not bypass its invariants.
+
+## 24.3 Milestone C — Correctness Tests
+
+Add or extend tests for at least:
+
+- a normal registration/request/response path;
+- multiple clients connected at the same time;
+- a message fragmented across multiple writes;
+- multiple newline-delimited messages received together;
+- malformed messages and invalid fields;
+- a message exceeding the protocol length limit;
+- a client disconnecting before completing a message;
+- a client disconnecting while output is pending, where practical;
+- one client that sends incomplete data must not prevent another client from making progress;
+- no duplicate job delivery and no duplicate resource accounting after the network refactor.
+
+Tests should verify externally observable behavior, not depend on arbitrary sleeps where a deterministic synchronization method is available. Existing tests must continue to pass.
+
+## 24.4 Milestone D — Reproducible End-to-End Benchmark
+
+Build a separate benchmark for the TCP service. Keep it distinct from the microbenchmark of the scheduling function.
+
+Vary a small, documented set of client concurrency levels, for example 1, 10, 50, and 100 clients if the machine can support them. Use the same request mix and total workload for the blocking and epoll versions.
+
+Record at least:
+
+- completed requests and failed requests;
+- throughput (requests/second);
+- end-to-end latency, including P50 and P95;
+- CPU usage and peak memory usage when practical;
+- client concurrency, total request count, message sizes, machine/OS details, compiler/build mode, and test command.
+
+Use a warm-up phase and repeat each scenario multiple times. Report the median across runs and include enough detail for another person to reproduce the result. Do not claim epoll is faster in every workload: at low concurrency, results may be similar or the new implementation may be slower. Explain the observed trade-offs based on measurements.
+
+Do not mix scheduling-algorithm time with network latency without clearly defining the measurement boundary.
+
+## 24.5 Milestone E — Documentation and Resume Evidence
+
+Update the README only after the implementation and measurements are verified. Include:
+
+- the blocking-server limitation that motivated the change;
+- the epoll architecture and per-connection state model;
+- the correctness cases covered by tests;
+- benchmark environment and exact reproduction commands;
+- a before/after results table with actual measurements;
+- limitations and cases not yet handled.
+
+A resume bullet may mention epoll, concurrent clients, or performance improvements only after those features are implemented and tested. Any percentage improvement must be computed from recorded measurements, not guessed.
+
+## 24.6 Scope Guardrails
+
+For this optimization cycle, prioritize:
+
+1. correctness;
+2. tests;
+3. reproducible measurement;
+4. clear explanation and documentation.
+
+Do not combine this milestone with heartbeat/failure recovery, persistence, GPU scheduling, Kubernetes, TLS, Protocol Buffers/gRPC, or a new threading architecture. Do not turn HeteroSched into a large but unfinished platform. The CUDA GEMM project is a separate project and should not be mixed into this repository.
+
+---
+
+# 25. Codex Rules for Performance Work
+
+When doing performance-related work:
+
+- State the hypothesis before changing code.
+- Define the metric and measurement boundary before benchmarking.
+- Change one major variable at a time.
+- Keep a reproducible baseline.
+- Run correctness tests before trusting performance results.
+- Avoid comparing debug and release builds or different workloads.
+- Include failures and timeouts in the report; do not silently drop them.
+- Explain complexity, bottlenecks, trade-offs, and what the measurements do and do not prove.
+- If results do not improve, analyze why instead of fabricating a win or hiding the result.
+- End each milestone with: what changed, tests run, measured results, known limitations, interview questions, and a suggested Git commit message.
