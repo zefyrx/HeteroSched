@@ -29,7 +29,9 @@ HeteroSched/
 │   ├── net/
 │   └── protocol/
 ├── benchmarks/
-│   └── scheduler_benchmark.cpp
+│   ├── scheduler_benchmark.cpp
+│   ├── tcp_benchmark.py         # TCP 服务压测，Python 标准库
+│   └── results/                # 保存的原始请求耗时与测量环境
 ├── CMakeLists.txt
 └── README.md
 ```
@@ -360,7 +362,7 @@ Job 解析器同样允许 `SUBMIT_JOB 101+2+4096`，解析结果为 Job ID `101`
 ctest --test-dir build --output-on-failure
 ```
 
-CTest 包含七个测试程序，也可以分别运行：
+安装 Python 3 时，CTest 包含八个测试程序；没有 Python 时，七个 C++ 测试及应用仍可正常构建。可以分别运行：
 
 ```bash
 ./build/scheduler_tests
@@ -370,6 +372,7 @@ CTest 包含七个测试程序，也可以分别运行：
 ./build/job_submission_tests
 ./build/job_completion_tests
 ./build/scheduler_protocol_tests
+python3 tests/net/tcp_benchmark_test.py
 ```
 
 `scheduler_tests` 覆盖：
@@ -416,7 +419,9 @@ CTest 包含七个测试程序，也可以分别运行：
 
 `scheduler_protocol_tests` 直接调用服务端使用的 `processSchedulerRequest()`，覆盖五类命令分流、无 Worker/空队列/容量不足、严格 FIFO、提交→调度→完成→资源恢复的状态转换、重复完成、完成等待中或未知 Job，以及非法请求不修改状态。另覆盖领取→完成闭环、领取请求校验、未知 Worker 与客户端使用的调度结果和 `RUN_JOB` 解析函数，包括合法边界和畸形响应。
 
-当前 CTest 自动验证调度核心、协议解析与请求分流、状态转换和字节流收发，不启动 TCP 服务端与客户端，也不验证 TCP 连接建立、服务端 5 秒超时配置或客户端进程的全部响应分支。这些流程可按上述步骤手动验证；发送函数的部分发送和 `EINTR` 重试分支尚未由测试专门触发。
+`tcp_benchmark_tests` 使用临时 TCP 服务端验证压测工具：多个客户端确实同时发出请求、总请求数分配、预热不计入正式样本、分段响应、畸形/超长响应、提前断开、超时、成功与失败混合记账、分位数计算、多轮原始数据保存、失败退出码和预热失败记录。同步屏障要求三个客户端都发来请求后才返回响应，避免依靠固定休眠来判断是否并发。
+
+当前 CTest 自动验证调度核心、协议解析与请求分流、状态转换、字节流收发以及压测工具，不启动 C++ TCP 服务端与客户端，也不验证服务端 5 秒超时配置或客户端进程的全部响应分支。这些流程可按上述步骤手动验证；发送函数的部分发送和 `EINTR` 重试分支尚未由测试专门触发。
 
 ## Benchmark
 
@@ -455,6 +460,89 @@ LeastAllocated    9              91             78.57          64.05            
 ```
 
 平均耗时会随硬件、系统负载和编译器变化；单次本地结果不应被视为严格的性能结论。
+
+### TCP 服务 benchmark
+
+`benchmarks/tcp_benchmark.py` 测量完整的短连接请求，与上面的调度函数 benchmark 分开。目标是先保存阻塞版基线，再用同一工具、请求数、超时、日志策略和构建模式测量 epoll 版；epoll 尚未实现。
+
+使用没有 Worker/Job、且没有其他客户端访问的全新服务端。每个连接只发送 `SCHEDULE_NEXT\n`（14 字节），预期 `SCHEDULE_NONE\n`（14 字节）。错误响应、EOF、连接失败、超时均计为失败，不自动重试。该负载衡量空队列的网络服务路径，不代表任务执行或复杂调度性能。
+
+```bash
+python3 benchmarks/tcp_benchmark.py \
+  --requests 1000 --warmup 10 --concurrency 1 10 50 100 \
+  --repeat 3 --timeout 1 --label blocking \
+  --server-binary build/scheduler_server \
+  --notes 'Release; fresh empty server; stdout/stderr redirected to a file' \
+  --output build/blocking-results.json
+```
+
+可以用 `--port` 指定端口，用 `--server-pid <PID>` 在 Linux 上采样该进程的 CPU 和内存。压测程序不启动、重置或停止目标服务端；不要同时运行 Worker 或 Job 客户端。服务端标准输出和标准错误应重定向到文件，避免终端输出影响结果，两版必须采用相同方式。
+
+测量口径：
+
+- 每个并发数、每一轮均先串行预热 `--warmup` 次，预热失败会停止后续测量，已完成轮次和停止原因仍写入 JSON。
+- 固定数量的 Python 客户端线程通过 barrier 一起开始。每个线程串行处理分配到的请求份额，所有线程合计恰好 `--requests` 次；不是每个线程发送这么多次。并发数不能超过总请求数。
+- 这是闭环短连接负载：每个客户端等当前请求结束后才发下一个请求，最多有指定数量的请求同时进行。各线程份额相差最多一次，测试尾部实际并发会降低。
+- 成功请求延迟从开始建立连接到收到完整响应，包含连接等待、服务端排队及处理、传输和 Python/操作系统调度，不含响应校验与关闭连接。`--timeout` 限制单次 socket 操作，不是整条请求的总截止时间。
+- 正式总耗时从 barrier 释放到全部请求结束，包含失败等待和客户端记账，不含预热、线程创建、指标汇总及输出。成功吞吐 = 成功数 / 正式总耗时。
+- P50/P95 只使用成功请求的延迟，按 nearest-rank 定义取排序后第 `ceil(p × N)` 个样本。必须同时阅读失败率；大量超时可以使成功请求的 P95 看起来仍很低。
+- 跨轮汇总逐项取中位数，不把所有轮的延迟混在一起。某轮无成功样本，则该并发数汇总的延迟显示 `null`，不会悄悄省略失败轮。
+- JSON 保留每轮成功耗时（ns）、每个失败请求的耗时及原因、吞吐和分位数、环境、源码提交、脚本/可选服务端二进制 SHA-256、命令和备注。任意正式请求失败时退出码为 1，结果仍会保存。
+- 可选 CPU 指标从 `/proc/<PID>/stat` 的 CPU 时间增量计算，100% 表示占满一个逻辑核，精度受内核时钟 tick 影响。`VmHWM` 是服务端进程生命周期的 RSS 峰值，不是本轮独立峰值；无法采样时明确记录 unavailable。客户端 CPU 和内存未测量。
+
+#### 重建已保存的阻塞基线
+
+阻塞版代码固定在提交 `2f30211b75f0fc65aa40ab7843957363f94877ef`。当前端口 9000 被占用，因此已保存测量只把该服务端副本的监听端口和启动日志改为 19000，原有服务端没有被停止或修改。以下命令在独立 worktree 中重建；端口变更不影响连接处理逻辑，未来比较时两版应使用相同端口和配置。
+
+```bash
+git worktree add --detach build/blocking-source 2f30211b75f0fc65aa40ab7843957363f94877ef
+python3 - <<'PY'
+from pathlib import Path
+path = Path('build/blocking-source/apps/scheduler_server.cpp')
+source = path.read_text()
+assert source.count('htons(9000)') == 1
+path.write_text(source.replace('htons(9000)', 'htons(19000)')
+               .replace('127.0.0.1:9000', '127.0.0.1:19000'))
+PY
+cmake -S build/blocking-source -B build/blocking-build -DCMAKE_BUILD_TYPE=Release
+cmake --build build/blocking-build --target scheduler_server --parallel 2
+```
+
+终端一启动基线（需要空闲的 19000 端口），看到日志中的 `Listening` 后继续：
+
+```bash
+./build/blocking-build/scheduler_server > build/blocking-server.log 2>&1
+```
+
+终端二执行；若要 CPU/RSS，请额外传入上面启动的服务端 PID：
+
+```bash
+python3 benchmarks/tcp_benchmark.py --port 19000 \
+  --requests 1000 --warmup 10 --concurrency 1 10 50 100 \
+  --repeat 3 --timeout 1 --label blocking \
+  --server-binary build/blocking-build/scheduler_server \
+  --notes '2f30211; Release -O3 -DNDEBUG; port-only change; logs redirected to file' \
+  --output build/blocking-reproduced.json
+```
+
+测试后在终端一按 Ctrl+C。如果要移除临时 worktree，先撤销该副本的端口修改，再执行 `git worktree remove build/blocking-source`；不要对主工作区执行恢复操作。
+
+#### 已测阻塞版结果
+
+原始数据保存在 [`benchmarks/results/blocking_baseline.json`](benchmarks/results/blocking_baseline.json)，包含全部 12 轮及逐请求数据。环境为 WSL2 / Linux 6.6.87.2、AMD Ryzen 7 6800H（16 个逻辑 CPU）、GCC 13.3.0，Release `-O3 -DNDEBUG`。每轮 1000 次正式请求、10 次串行预热、单次 socket 操作超时 1 秒，每档重复 3 轮。所有轮次共 12,000 次正式请求，成功 9,935 次，超时失败 2,065 次；无中途停止。构建和原有测试通过后测量，新增压测测试也已通过。
+
+| 并发客户端 | 成功吞吐中位数（请求/秒） | 成功 P50 中位数（ms） | 成功 P95 中位数（ms） | 单轮失败率中位数 | 三轮失败总数 | 服务端 CPU 中位数（单核 %） |
+|---:|---:|---:|---:|---:|---:|---:|
+| 1 | 4694.01 | 0.180 | 0.233 | 0.0% | 0 / 3000 | 70.18 |
+| 10 | 242.78 | 0.220 | 0.425 | 2.0% | 57 / 3000 | 2.97 |
+| 50 | 81.20 | 0.321 | 5.828 | 26.4% | 773 / 3000 | 1.10 |
+| 100 | 85.13 | 0.361 | 11.287 | 39.7% | 1235 / 3000 | 0.99 |
+
+服务端进程生命周期 RSS 峰值为 3200 KiB；各轮共用同一个空状态服务端，因此这不是各轮独立测得的内存峰值。CPU 来自内核 tick 增量，短时测量存在量化误差。服务端日志重定向到文件，客户端和服务端在同一台机器上，没有控制系统后台负载。
+
+高并发下失败增加且 CPU 较低，与连接排队/等待的现象一致。当前服务端串行处理请求且 `listen()` backlog 为 1，测试又使用短连接和 1 秒超时；尚未用控制变量实验或内核计数器区分这些因素的贡献，不能把吞吐下降全部归因于阻塞 I/O，也不能把这些结果当作服务端的最大处理能力。Python 线程、GIL、操作系统调度与 TCP 连接重传同样在端到端测量边界内。后续先保持 backlog 等条件一致比较 epoll，再单独研究 backlog 调优，避免把两种优化混为一个收益。
+
+当前没有 epoll 的实测结果，不提供优化百分比。空队列请求也不验证真实调度负载、Worker 执行、慢客户端隔离或资源记账正确性，这些需要后续独立的集成测试与负载。
 
 ## 当前限制
 

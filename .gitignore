@@ -5,3 +5,5 @@
 /docs/
 
 /.vscode/
+
+__pycache__/

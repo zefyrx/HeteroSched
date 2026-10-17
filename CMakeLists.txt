@@ -65,6 +65,14 @@ target_link_libraries(tcp_io_tests PRIVATE heterosched_net)
 add_test(NAME tcp_io_tests COMMAND tcp_io_tests)
 set_tests_properties(tcp_io_tests PROPERTIES TIMEOUT 10)
 
+# Python is optional for building the C++ applications; the benchmark uses stdlib only.
+find_package(Python3 QUIET COMPONENTS Interpreter)
+if(Python3_Interpreter_FOUND)
+    add_test(NAME tcp_benchmark_tests
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/net/tcp_benchmark_test.py)
+    set_tests_properties(tcp_benchmark_tests PROPERTIES TIMEOUT 30)
+endif()
+
 add_executable(registration_tests tests/protocol/registration_test.cpp)
 target_link_libraries(registration_tests PRIVATE heterosched_protocol)
 add_test(NAME registration_tests COMMAND registration_tests)
