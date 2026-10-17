@@ -17,7 +17,7 @@ add_library(heterosched_core
 target_include_directories(heterosched_core PUBLIC include)
 target_link_libraries(heterosched_core PUBLIC Threads::Threads)
 
-add_library(heterosched_net src/net/tcp_io.cpp)
+add_library(heterosched_net src/net/tcp_io.cpp src/net/epoll_server.cpp)
 target_include_directories(heterosched_net PUBLIC include)
 
 add_library(heterosched_protocol
@@ -35,6 +35,9 @@ target_link_libraries(heterosched PRIVATE heterosched_core)
 
 add_executable(scheduler_server apps/scheduler_server.cpp)
 target_link_libraries(scheduler_server PRIVATE heterosched_protocol heterosched_net)
+
+add_executable(scheduler_server_epoll apps/scheduler_server_epoll.cpp)
+target_link_libraries(scheduler_server_epoll PRIVATE heterosched_protocol heterosched_net)
 
 add_executable(worker_client apps/worker_client.cpp)
 target_link_libraries(worker_client PRIVATE heterosched_protocol heterosched_net)
@@ -65,12 +68,21 @@ target_link_libraries(tcp_io_tests PRIVATE heterosched_net)
 add_test(NAME tcp_io_tests COMMAND tcp_io_tests)
 set_tests_properties(tcp_io_tests PROPERTIES TIMEOUT 10)
 
+add_executable(epoll_server_io_tests tests/net/epoll_server_io_test.cpp)
+target_link_libraries(epoll_server_io_tests PRIVATE heterosched_net)
+add_test(NAME epoll_server_io_tests COMMAND epoll_server_io_tests)
+set_tests_properties(epoll_server_io_tests PROPERTIES TIMEOUT 30)
+
 # Python is optional for building the C++ applications; the benchmark uses stdlib only.
 find_package(Python3 QUIET COMPONENTS Interpreter)
 if(Python3_Interpreter_FOUND)
     add_test(NAME tcp_benchmark_tests
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/net/tcp_benchmark_test.py)
     set_tests_properties(tcp_benchmark_tests PROPERTIES TIMEOUT 30)
+    add_test(NAME epoll_server_integration_tests
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/net/epoll_server_integration_test.py
+                $<TARGET_FILE:scheduler_server_epoll>)
+    set_tests_properties(epoll_server_integration_tests PROPERTIES TIMEOUT 30)
 endif()
 
 add_executable(registration_tests tests/protocol/registration_test.cpp)

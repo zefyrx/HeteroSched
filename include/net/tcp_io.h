@@ -3,6 +3,9 @@
 
 #include <string>
 #include <optional>
+#include <cstddef>
+
+inline constexpr std::size_t kMaxMessageLength = 128;
 
 bool sendAll(int fd, const std::string& message);
 

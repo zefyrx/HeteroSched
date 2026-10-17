@@ -75,7 +75,7 @@ std::optional<std::string> receiveLine(int fd) {
             return line;
         }
 
-        if (line.size() == 128) {
+        if (line.size() == kMaxMessageLength) {
             std::cerr << "message too long" << std::endl;
             return std::nullopt;
         }

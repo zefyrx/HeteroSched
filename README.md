@@ -1,8 +1,10 @@
 # HeteroSched
 
-HeteroSched 是一个使用 C++17 逐步构建的轻量级资源调度器学习项目。已完成单进程资源调度，并通过阻塞式 TCP 支持 Worker 注册、Job 提交、任务领取和完成上报。Worker 使用短连接轮询，自动领取任务、模拟执行并上报完成；Scheduler 串行处理请求，维护队列、运行记录和 Worker 资源。
+HeteroSched 是一个使用 C++17 逐步构建的轻量级资源调度器学习项目。已完成单进程资源调度，并通过 TCP 支持 Worker 注册、Job 提交、任务领取和完成上报。保留原阻塞式服务端，并新增独立的 Linux LT epoll 服务端。Worker 使用短连接轮询，自动领取任务、模拟执行并上报完成；Scheduler 维护队列、运行记录和 Worker 资源。
 
 当前进度：Phase 1 单进程调度已完成；Phase 2 已实现 Worker 自动领取、模拟执行、完成上报的网络闭环，并保留手动调度与完成接口。提交成功表示入队，调度成功表示资源已预留，领取成功表示派发记录已消费，完成成功表示资源已释放。目前执行使用 500 ms 的休眠模拟，真实工作负载、心跳、故障恢复和 GPU 调度属于后续计划。
+
+epoll 第一版已通过连接生命周期、并发请求和缓冲区测试；阻塞版网络压测基线已保存。两版请求日志方式尚未统一，正式性能对比仍待完成，当前不宣称 epoll 的性能提升。
 
 ## 目录结构
 
@@ -10,9 +12,10 @@ HeteroSched 是一个使用 C++17 逐步构建的轻量级资源调度器学习�
 
 ```text
 HeteroSched/
-├── apps/                       # 五个可执行程序入口
+├── apps/                       # 六个可执行程序入口
 │   ├── demo_main.cpp            # 单进程演示，对应 heterosched
 │   ├── scheduler_server.cpp
+│   ├── scheduler_server_epoll.cpp
 │   ├── worker_client.cpp
 │   ├── job_client.cpp
 │   └── scheduler_client.cpp
@@ -63,7 +66,7 @@ CMake 构建三个可复用库：`heterosched_core` 管理领域状态与调度�
 
 Scheduler 拥有 Worker 状态、FIFO 等待队列和运行中 Job 记录。Worker 保存总资源与可用资源，并负责资源可行性检查、分配和释放。示例程序使用 `std::thread` 模拟 Job 执行；执行线程完成后通过线程安全的 `completeJob()` 释放资源。
 
-### TCP 请求处理
+### 阻塞版 TCP 请求处理
 
 ```text
 worker_client / job_client / scheduler_client
@@ -109,6 +112,31 @@ runningJobs_（已交付，等待完成）
 
 服务端对每条完整请求输出 `Received`、生成的 `Response`、等待/运行数量以及各 Worker 的可用 CPU 和内存。状态在响应发送之前修改和打印；这些日志不证明客户端已经收到响应。
 
+### LT epoll TCP 请求处理
+
+`scheduler_server_epoll` 使用同一份 `Scheduler` 和 `processSchedulerRequest()`，通过 `EpollServer` 管理网络。监听 socket 与 `accept4()` 得到的客户端 socket 均设置 `SOCK_NONBLOCK | SOCK_CLOEXEC`，`epoll_create1()` 创建事件实例，监听队列 backlog 暂时保持为 1。网络事件循环单线程运行；业务状态继续通过原有 Scheduler API 访问。
+
+每个连接保存以下状态：
+
+| 字段 | 用途 |
+|---|---|
+| `fd` | 由 `UniqueFd` 独占并自动关闭 socket |
+| `input` | 保存尚未解析的字节，包括未完成的一行和输出背压时暂存的完整行 |
+| `output` / `outputOffset` | 保存响应及已发送位置，部分发送后从原位置继续 |
+| `readClosed` | `recv()` 已返回 EOF，对端不再发送；仍可发送待处理响应 |
+| `closing` | 帧超过长度上限，发完此前合法请求的响应后关闭 |
+| `interests` | 当前订阅的事件，避免无变化的 `epoll_ctl MOD` |
+
+`epoll_wait()` 返回后，监听事件触发非阻塞 accept；客户端可读时循环接收并按换行拆帧，完整行立即交给协议处理函数。`EAGAIN/EWOULDBLOCK` 保留连接和缓冲区，`EINTR` 重试，其他收发错误结束该连接。正文 128 字节上限由阻塞版与 epoll 版共享常量；多个完整行可以一起到达，某一行也可以分多次到达。
+
+发送同样使用非阻塞 `send(..., MSG_NOSIGNAL)`。只有存在待发送字节时才订阅 `EPOLLOUT`，发完后取消，避免 socket 一直可写造成空转。输出达到 64 KiB 高水位时暂停 `EPOLLIN/EPOLLRDHUP`；输出腾出空间后，先解析已在用户态缓存中的完整行，再恢复读取。高水位允许最后一个响应越过阈值，当前协议的单条响应长度有界。
+
+LT 模式下，每个连接每轮最多接收 64 KiB、发送 64 KiB，每轮最多接受 64 个连接；未完成的就绪操作会继续获得通知，避免持续活跃的一个客户端占用整轮循环。`EPOLLRDHUP` 触发读完剩余请求；读到 EOF 后发完完整请求的响应，丢弃不完整的尾行，再关闭连接。错误或完整挂断事件按连接清理。连接用递增代号关联 epoll 事件，避免已关闭 fd 被复用后，旧事件误操作新连接。
+
+新入口支持同一连接上连续请求，每条请求对应一条按序响应；发完响应后继续等待下一条请求。原有客户端读取一行后关闭连接，因此其短连接请求方式仍可使用。一个客户端发不完一行或暂时不读响应时，其他客户端可以继续处理。协议状态修改仍发生在响应发送前，响应丢失不会回滚调度状态，也没有新增重试保证。
+
+Linux 接口语义参考 [epoll(7)](https://man7.org/linux/man-pages/man7/epoll.7.html) 和 [epoll_ctl(2)](https://man7.org/linux/man-pages/man2/epoll_ctl.2.html)。
+
 ## 已实现功能
 
 - C++17 和 CMake 构建
@@ -145,6 +173,10 @@ runningJobs_（已交付，等待完成）
 - Worker 按秒轮询领取本节点任务，校验 `RUN_JOB` 响应并模拟执行 500 ms
 - Worker 自动完成上报、确认后继续领取，每个 Worker 进程串行执行任务
 - 每个 Worker 的 FIFO 待派发队列、单次领取及手动完成后的派发清理
+- 独立的单线程 LT epoll 服务端，非阻塞 accept/recv/send
+- 每连接输入输出缓冲、部分发送续传、输出背压和每轮 I/O 预算
+- 单连接多条请求、半关闭后响应发送及断开清理
+- 真实 C++ epoll 服务端集成测试，验证慢客户端隔离与并发领取/完成记账
 
 如果 FIFO 队首 Job 无法在任何 Worker 上运行，它会继续留在队列中，后续 Job 不会越过它。这保持了严格 FIFO，但也可能造成队头阻塞（head-of-line blocking）。
 
@@ -239,6 +271,24 @@ Worker 1: available CPU=2, memoryMB=4096
 领取响应接收后连接就关闭，休眠和执行均发生在 Worker 本地，因此服务端可以继续接收其他请求。可在第四个终端启动 `./build/worker_client 2 2 4096` 验证两个 Worker；FirstFit 按注册顺序选节点，不保证任务平均分配。每个 Worker 进程一次只执行一个任务，调度器仍按声明的资源管理容量。
 
 实验结束时，对 Worker 和服务端分别按 `Ctrl+C`。Worker 退出不会注销，服务端重启后状态清空；同一服务端实例内重复启动同一 Worker ID 会注册失败。
+
+### 运行 epoll 服务端
+
+完成相同的 CMake 构建后，可在原服务端终端按 Ctrl+C 退出阻塞版，再启动：
+
+```bash
+./build/scheduler_server_epoll
+```
+
+默认同样监听 `127.0.0.1:9000`，可按上面的步骤使用原 Worker、Job 和控制客户端。两种服务端是独立进程，各自拥有内存状态；切换后需要重新注册 Worker、提交 Job。新入口只打印启动地址和致命错误，没有逐请求状态日志。
+
+如果 9000 端口正在使用，可单独启动一个空状态的测试实例：
+
+```bash
+./build/scheduler_server_epoll --port 19000
+```
+
+benchmark 支持 `--port 19000`；原有三个 C++ 客户端的端口仍固定为 9000。`--port 0` 可由系统分配空闲端口，实际地址会打印到启动日志，自动化测试使用此方式避免端口冲突。服务端均仅绑定 loopback。
 
 ### 验证输入与错误处理
 
@@ -362,17 +412,19 @@ Job 解析器同样允许 `SUBMIT_JOB 101+2+4096`，解析结果为 Job ID `101`
 ctest --test-dir build --output-on-failure
 ```
 
-安装 Python 3 时，CTest 包含八个测试程序；没有 Python 时，七个 C++ 测试及应用仍可正常构建。可以分别运行：
+安装 Python 3 时，CTest 包含十个测试程序；没有 Python 时，八个 C++ 测试及应用仍可正常构建。可以分别运行：
 
 ```bash
 ./build/scheduler_tests
 ./build/job_dispatch_tests
 ./build/registration_tests
 ./build/tcp_io_tests
+./build/epoll_server_io_tests
 ./build/job_submission_tests
 ./build/job_completion_tests
 ./build/scheduler_protocol_tests
 python3 tests/net/tcp_benchmark_test.py
+python3 tests/net/epoll_server_integration_test.py ./build/scheduler_server_epoll
 ```
 
 `scheduler_tests` 覆盖：
@@ -421,7 +473,11 @@ python3 tests/net/tcp_benchmark_test.py
 
 `tcp_benchmark_tests` 使用临时 TCP 服务端验证压测工具：多个客户端确实同时发出请求、总请求数分配、预热不计入正式样本、分段响应、畸形/超长响应、提前断开、超时、成功与失败混合记账、分位数计算、多轮原始数据保存、失败退出码和预热失败记录。同步屏障要求三个客户端都发来请求后才返回响应，避免依靠固定休眠来判断是否并发。
 
-当前 CTest 自动验证调度核心、协议解析与请求分流、状态转换、字节流收发以及压测工具，不启动 C++ TCP 服务端与客户端，也不验证服务端 5 秒超时配置或客户端进程的全部响应分支。这些流程可按上述步骤手动验证；发送函数的部分发送和 `EINTR` 重试分支尚未由测试专门触发。
+`epoll_server_integration_tests` 每个用例启动一个全新的真实 C++ 服务端，验证注册/提交/领取/完成、持久连接、分段请求、多行与不完整尾行、半关闭、128 字节边界、超长帧、无效字段、断开清理、慢客户端隔离，以及 12 个客户端同时领取时只派发一次、重复完成不会重复释放资源。各连接使用超时作为失败上限，通过完整响应和 barrier 同步，不使用固定休眠判断结果。
+
+`epoll_server_io_tests` 向通用事件循环注入 8 MiB 响应，验证跨事件的发送偏移、输出积压后的继续解析、响应顺序、半关闭后完整响应、慢读者不阻塞其他连接，以及输出仍待发送时客户端 reset 后继续服务。实际 Scheduler 协议响应较短，大响应只用于覆盖网络层的发送路径。
+
+当前 CTest 会启动 C++ epoll 服务端验证网络集成；阻塞版的 5 秒超时配置和原 C++ 客户端进程的全部响应分支仍需手动验证。阻塞式 `sendAll()` 的部分发送分支及系统调用 `EINTR` 分支尚未由测试专门触发。
 
 ## Benchmark
 
@@ -463,7 +519,7 @@ LeastAllocated    9              91             78.57          64.05            
 
 ### TCP 服务 benchmark
 
-`benchmarks/tcp_benchmark.py` 测量完整的短连接请求，与上面的调度函数 benchmark 分开。目标是先保存阻塞版基线，再用同一工具、请求数、超时、日志策略和构建模式测量 epoll 版；epoll 尚未实现。
+`benchmarks/tcp_benchmark.py` 测量完整的短连接请求，与上面的调度函数 benchmark 分开。阻塞版基线已保存，epoll 第一版已通过正确性测试，正式性能对比仍需使用同一工具、请求数、超时、日志策略和构建模式重新测量。
 
 使用没有 Worker/Job、且没有其他客户端访问的全新服务端。每个连接只发送 `SCHEDULE_NEXT\n`（14 字节），预期 `SCHEDULE_NONE\n`（14 字节）。错误响应、EOF、连接失败、超时均计为失败，不自动重试。该负载衡量空队列的网络服务路径，不代表任务执行或复杂调度性能。
 
@@ -542,15 +598,38 @@ python3 benchmarks/tcp_benchmark.py --port 19000 \
 
 高并发下失败增加且 CPU 较低，与连接排队/等待的现象一致。当前服务端串行处理请求且 `listen()` backlog 为 1，测试又使用短连接和 1 秒超时；尚未用控制变量实验或内核计数器区分这些因素的贡献，不能把吞吐下降全部归因于阻塞 I/O，也不能把这些结果当作服务端的最大处理能力。Python 线程、GIL、操作系统调度与 TCP 连接重传同样在端到端测量边界内。后续先保持 backlog 等条件一致比较 epoll，再单独研究 backlog 调优，避免把两种优化混为一个收益。
 
-当前没有 epoll 的实测结果，不提供优化百分比。空队列请求也不验证真实调度负载、Worker 执行、慢客户端隔离或资源记账正确性，这些需要后续独立的集成测试与负载。
+当前没有条件统一后的 epoll 性能对比结果，不提供优化百分比。新入口没有逐请求日志，而阻塞基线输出逐请求状态；下一轮需要先统一日志条件、保持 backlog=1，再重跑两版，不能把日志差异计作 epoll 收益。空队列压测也不验证真实调度负载或 Worker 执行；慢客户端隔离和资源记账由上面的 epoll 集成测试独立验证。
+
+#### epoll 第一版验证记录
+
+改动前提交为 `c14f6da3f23143381ecca94c59b3b33e970662c7`，使用 GCC 13.3.0、CMake 3.28.3、WSL2 / Linux 6.6.87.2。以下命令在 Release 下改动前通过 8/8 CTest，改动后通过 10/10 CTest：
+
+```bash
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build --parallel 2
+ctest --test-dir build --output-on-failure
+```
+
+额外使用警告、AddressSanitizer 与 UndefinedBehaviorSanitizer 检查两个 epoll 测试，2/2 通过，没有出现编译警告或 sanitizer 报告：
+
+```bash
+cmake -S . -B build/epoll-check -DCMAKE_BUILD_TYPE=Debug \
+  '-DCMAKE_CXX_FLAGS=-Wall -Wextra -Wpedantic -fsanitize=address,undefined -fno-omit-frame-pointer' \
+  '-DCMAKE_EXE_LINKER_FLAGS=-fsanitize=address,undefined'
+cmake --build build/epoll-check --target scheduler_server_epoll epoll_server_io_tests --parallel 2
+ctest --test-dir build/epoll-check --output-on-failure -R '^epoll_server_'
+```
+
+已有 benchmark 对新入口做单客户端功能检查，100 次正式请求全部成功，结果位于本地 `build/epoll-smoke.json`；这不是与阻塞版条件一致的性能实验，不用其耗时计算提升。
 
 ## 当前限制
 
-- TCP 服务端串行处理连接，同一时刻只处理一个客户端的一条请求消息
-- 单次接收等待最多约 5 秒，尚无整个请求的截止时间；持续缓慢发送字节的客户端仍可能长时间阻塞后续处理
+- 阻塞版串行处理连接，单次接收等待最多约 5 秒，没有整个请求的截止时间；持续缓慢发送字节可能长时间阻塞后续处理
+- epoll 版暂无空闲连接超时、连接总数配额或优雅停机；空闲/慢客户端不阻塞其他连接，但会占用 fd 和连接状态，尚未处理 fd 耗尽后的恢复
+- epoll 的每轮预算与输出高水位只限制网络处理，协议处理仍在事件循环中同步执行；大规模调度计算也可能影响其他客户端延迟
 - Worker 状态、等待 Job 与运行记录仅保存在内存中，服务端退出后消失
 - Worker 退出不会注销；待派发任务和运行记录可能长期保留，资源不会自动回收
-- 地址和端口固定在代码中，客户端 Worker/Job ID 和资源信息通过命令行传入
+- 阻塞版和原 C++ 客户端地址/端口固定；epoll 版可配置端口，但地址固定为 loopback
 - 网络 Job 通过 Worker 轮询触发调度；空闲轮询间隔为 1 秒，领取时机还受调度策略、执行和资源状态影响，尚无服务端主动推送
 - 状态修改与响应发送不是原子操作，尚无请求结果缓存或自动恢复机制
 - Scheduler 使用一把粗粒度 mutex，尚未研究锁竞争
