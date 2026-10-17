@@ -1,6 +1,7 @@
 """启动真实 C++ epoll 服务端验证协议和连接生命周期。"""
 
 from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
 import re
 import select
 import socket
@@ -39,10 +40,13 @@ class Peer:
 
 class EpollIntegrationTests(unittest.TestCase):
     def setUp(self):
-        self.server = subprocess.Popen([SERVER_BINARY, "--port", "0", "--quiet"],
+        self.addCleanup(self.stop_server)
+        self.start_server()
+
+    def start_server(self, *options):
+        self.server = subprocess.Popen([SERVER_BINARY, "--port", "0", "--quiet", *options],
                                        stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                        text=True)
-        self.addCleanup(self.stop_server)
         readable, _, _ = select.select([self.server.stdout], [], [], 3)
         self.assertTrue(readable, "server startup timed out")
         startup = self.server.stdout.readline().strip()
@@ -57,8 +61,12 @@ class EpollIntegrationTests(unittest.TestCase):
         except subprocess.TimeoutExpired:
             self.server.kill()
             self.server.wait(timeout=3)
+        stdout_tail = self.server.stdout.read()
+        stderr = self.server.stderr.read()
         self.server.stdout.close()
         self.server.stderr.close()
+        self.assertEqual(stdout_tail, "", "unexpected output in quiet mode")
+        self.assertEqual(stderr, "", "server errors or sanitizer diagnostics")
 
     def peer(self):
         peer = Peer(self.port)
@@ -175,6 +183,63 @@ class EpollIntegrationTests(unittest.TestCase):
             peer.send(b"SCHEDULE_")
             peer.close()
             self.assertEqual(self.request(b"SCHEDULE_NEXT"), b"SCHEDULE_NONE\n")
+
+    def test_idle_timer_wakes_event_loop_and_discards_incomplete_request(self):
+        self.stop_server()
+        self.start_server("--idle-timeout-ms", "150")
+        silent = self.peer()
+        silent.eof()  # 无后续网络事件，epoll_wait 也必须按截止时间醒来。
+        persistent = self.peer()
+        persistent.send(b"SCHEDULE_NEXT\n")
+        self.assertEqual(persistent.line(), b"SCHEDULE_NONE\n")
+        persistent.eof()
+        partial = self.peer()
+        partial.send(b"SUBMIT_JOB 71 ")
+        partial.eof()
+        self.assertEqual(self.request(b"SUBMIT_JOB 71 1 1"), b"SUBMIT_OK\n")
+        self.assertIsNone(self.server.poll())
+
+    def test_connection_timeout_preserves_job_resource_accounting(self):
+        self.stop_server()
+        self.start_server("--idle-timeout-ms", "150")
+        self.assertEqual(self.request(b"REGISTER_WORKER 1 1 1"), b"REGISTER_OK\n")
+        self.assertEqual(self.request(b"SUBMIT_JOB 81 1 1"), b"SUBMIT_OK\n")
+        worker = self.peer()
+        worker.send(b"FETCH_JOB 1\n")
+        self.assertEqual(worker.line(), b"RUN_JOB 81 1 1\n")
+        worker.eof()
+        self.assertEqual(self.request(b"SUBMIT_JOB 82 1 1"), b"SUBMIT_OK\n")
+        self.assertEqual(self.request(b"FETCH_JOB 1"), b"NO_JOB\n")
+        self.assertEqual(self.request(b"COMPLETE_JOB 81"), b"COMPLETE_OK\n")
+        self.assertEqual(self.request(b"COMPLETE_JOB 81"), b"COMPLETE_ERROR COMPLETION_REJECTED\n")
+        self.assertEqual(self.request(b"FETCH_JOB 1"), b"RUN_JOB 82 1 1\n")
+
+    def test_idle_expiry_reclaims_connection_fds(self):
+        self.stop_server()
+        self.start_server("--backlog", "128", "--idle-timeout-ms", "1000")
+        descriptors = Path(f"/proc/{self.server.pid}/fd")
+        initial = len(list(descriptors.iterdir()))
+        peers = [self.peer() for _ in range(32)]
+        for peer in peers:
+            peer.send(b"SCHEDULE_NEXT\n")
+            self.assertEqual(peer.line(), b"SCHEDULE_NONE\n")  # 响应确认已被接受和处理。
+        self.assertEqual(len(list(descriptors.iterdir())), initial + 32)
+        for peer in peers:
+            peer.eof()
+        self.assertEqual(len(list(descriptors.iterdir())), initial)
+        self.assertEqual(self.request(b"SCHEDULE_NEXT"), b"SCHEDULE_NONE\n")
+
+    def test_idle_timeout_arguments(self):
+        for options in (("--idle-timeout-ms", "-1"), ("--idle-timeout-ms", "2147483648"),
+                        ("--idle-timeout-ms", "abc"), ("--idle-timeout-ms", "1x"),
+                        ("--idle-timeout-ms",),
+                        ("--idle-timeout-ms", "1", "--idle-timeout-ms", "2")):
+            result = subprocess.run([SERVER_BINARY, *options], capture_output=True, text=True, timeout=3)
+            self.assertEqual(result.returncode, 1)
+            self.assertNotIn("Listening", result.stdout)
+        self.stop_server()
+        self.start_server("--idle-timeout-ms", "0")
+        self.assertEqual(self.request(b"SCHEDULE_NEXT"), b"SCHEDULE_NONE\n")
 
 
 if __name__ == "__main__":

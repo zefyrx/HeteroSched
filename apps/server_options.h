@@ -9,13 +9,15 @@
 struct ServerOptions {
     std::uint16_t port = 9000;
     int backlog = 1;
+    int idleTimeoutMs = 0;
     bool quiet = false;
 };
 
-inline ServerOptions parseServerOptions(int argc, char* argv[]) {
+inline ServerOptions parseServerOptions(int argc, char* argv[], bool allowIdleTimeout = false) {
     ServerOptions options;
     bool portSpecified = false;
     bool backlogSpecified = false;
+    bool idleTimeoutSpecified = false;
     for (int index = 1; index < argc; ++index) {
         const std::string_view argument(argv[index]);
         if (argument == "--quiet") {
@@ -34,8 +36,17 @@ inline ServerOptions parseServerOptions(int argc, char* argv[]) {
             if (result.ec != std::errc{} || result.ptr != value.data() + value.size() || options.backlog <= 0)
                 throw std::invalid_argument("--backlog must be a positive int");
             backlogSpecified = true;
+        } else if (argument == "--idle-timeout-ms" && allowIdleTimeout &&
+                   index + 1 < argc && !idleTimeoutSpecified) {
+            const std::string_view value(argv[++index]);
+            const auto result = std::from_chars(value.data(), value.data() + value.size(), options.idleTimeoutMs);
+            if (result.ec != std::errc{} || result.ptr != value.data() + value.size() || options.idleTimeoutMs < 0)
+                throw std::invalid_argument("--idle-timeout-ms must be a nonnegative int (0 disables it)");
+            idleTimeoutSpecified = true;
         } else {
-            throw std::invalid_argument("usage: <server> [--port 0..65535] [--backlog positive-int] [--quiet]");
+            throw std::invalid_argument(allowIdleTimeout
+                ? "usage: <server> [--port 0..65535] [--backlog positive-int] [--idle-timeout-ms 0..2147483647] [--quiet]"
+                : "usage: <server> [--port 0..65535] [--backlog positive-int] [--quiet]");
         }
     }
     return options;

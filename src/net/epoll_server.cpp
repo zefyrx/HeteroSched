@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <array>
 #include <cerrno>
+#include <limits>
 #include <stdexcept>
 #include <system_error>
 
@@ -24,9 +25,13 @@ constexpr int kAcceptBudget = 64;
 bool wouldBlock() { return errno == EAGAIN || errno == EWOULDBLOCK; }
 }  // namespace
 
-EpollServer::EpollServer(std::uint16_t port, RequestHandler handler, int backlog)
-    : handler_(std::move(handler)) {
+EpollServer::EpollServer(std::uint16_t port, RequestHandler handler, int backlog,
+                         std::chrono::milliseconds idleTimeout, Now now)
+    : handler_(std::move(handler)), idleTimeout_(idleTimeout), now_(std::move(now)) {
     if (backlog <= 0) throw std::invalid_argument("backlog must be positive");
+    if (idleTimeout_.count() < 0 || idleTimeout_.count() > std::numeric_limits<int>::max())
+        throw std::invalid_argument("idle timeout must be a nonnegative int in milliseconds");
+    if (!now_) throw std::invalid_argument("monotonic clock is required");
     listener_ = UniqueFd(socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC, 0));
     if (listener_.get() < 0) fail("socket");
     epoll_ = UniqueFd(epoll_create1(EPOLL_CLOEXEC));
@@ -65,7 +70,8 @@ void EpollServer::acceptReady() {
             fail("accept4");
         }
         const std::uint64_t token = nextToken_++;
-        auto [iterator, inserted] = connections_.try_emplace(token, std::move(client));
+        const auto acceptedAt = idleTimeout_.count() > 0 ? now_() : Clock::time_point{};
+        auto [iterator, inserted] = connections_.try_emplace(token, std::move(client), acceptedAt);
         (void)inserted;
         auto& connection = iterator->second;
         epoll_event event{};
@@ -110,6 +116,7 @@ bool EpollServer::readReady(Connection& connection) {
         const auto length = std::min(buffer.size(), kIoBudget - received);
         const ssize_t count = recv(connection.fd.get(), buffer.data(), length, 0);
         if (count > 0) {
+            recordActivity(connection);
             received += static_cast<std::size_t>(count);
             connection.input.append(buffer.data(), static_cast<std::size_t>(count));
             processInput(connection);
@@ -133,6 +140,7 @@ bool EpollServer::writeReady(Connection& connection) {
                                    connection.output.data() + connection.outputOffset,
                                    length, MSG_NOSIGNAL);
         if (count > 0) {
+            recordActivity(connection);
             connection.outputOffset += static_cast<std::size_t>(count);
             sent += static_cast<std::size_t>(count);
         } else if (count < 0 && errno == EINTR) {
@@ -183,13 +191,46 @@ void EpollServer::closeConnection(std::uint64_t token) {
     connections_.erase(iterator);  // UniqueFd 自动关闭 socket。
 }
 
+void EpollServer::recordActivity(Connection& connection) {
+    if (idleTimeout_.count() > 0) connection.lastActivity = now_();
+}
+
+void EpollServer::expireIdleConnections(Clock::time_point now) {
+    if (idleTimeout_.count() == 0) return;
+    for (auto iterator = connections_.begin(); iterator != connections_.end();) {
+        const auto token = iterator->first;
+        const bool expired = now - iterator->second.lastActivity >= idleTimeout_;
+        ++iterator;  // closeConnection 会 erase，先保存下一个迭代器。
+        if (expired) closeConnection(token);
+    }
+}
+
+int EpollServer::waitTimeout(int requestedMs, Clock::time_point now) const {
+    if (idleTimeout_.count() == 0) return requestedMs;
+    int result = requestedMs;
+    for (const auto& entry : connections_) {
+        const auto remaining = entry.second.lastActivity + idleTimeout_ - now;
+        // 向上取整，避免不足 1 ms 时反复以 0 ms 等待形成忙循环。
+        const auto milliseconds = std::chrono::ceil<std::chrono::milliseconds>(remaining).count();
+        const int limit = static_cast<int>(std::clamp<std::int64_t>(
+            milliseconds, 0, std::numeric_limits<int>::max()));
+        if (result < 0 || limit < result) result = limit;
+    }
+    return result;
+}
+
 void EpollServer::pollOnce(int timeoutMs) {
+    const auto beforeWait = idleTimeout_.count() > 0 ? now_() : Clock::time_point{};
+    expireIdleConnections(beforeWait);
     std::array<epoll_event, 64> events{};
-    const int count = epoll_wait(epoll_.get(), events.data(), events.size(), timeoutMs);
+    const int count = epoll_wait(epoll_.get(), events.data(), events.size(),
+                                waitTimeout(timeoutMs, beforeWait));
     if (count < 0) {
         if (errno == EINTR) return;
         fail("epoll_wait");
     }
+    // 截止时间已到的连接先清理；同批旧事件由连接代号查找自然跳过。
+    if (idleTimeout_.count() > 0) expireIdleConnections(now_());
     for (int index = 0; index < count; ++index) {
         const auto token = events[index].data.u64;
         if (token == 0) {

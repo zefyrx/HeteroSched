@@ -121,6 +121,7 @@ runningJobs_（已交付，等待完成）
 | 字段 | 用途 |
 |---|---|
 | `fd` | 由 `UniqueFd` 独占并自动关闭 socket |
+| `lastActivity` | 接受连接或最近一次成功收发字节的单调时钟时间，用于可选的空闲清理 |
 | `input` | 保存尚未解析的字节，包括未完成的一行和输出背压时暂存的完整行 |
 | `output` / `outputOffset` | 保存响应及已发送位置，部分发送后从原位置继续 |
 | `readClosed` | `recv()` 已返回 EOF，对端不再发送；仍可发送待处理响应 |
@@ -136,6 +137,22 @@ LT 模式下，每个连接每轮最多接收 64 KiB、发送 64 KiB，每轮最
 新入口支持同一连接上连续请求，每条请求对应一条按序响应；发完响应后继续等待下一条请求。原有客户端读取一行后关闭连接，因此其短连接请求方式仍可使用。一个客户端发不完一行或暂时不读响应时，其他客户端可以继续处理。协议状态修改仍发生在响应发送前，响应丢失不会回滚调度状态，也没有新增重试保证。
 
 Linux 接口语义参考 [epoll(7)](https://man7.org/linux/man-pages/man7/epoll.7.html) 和 [epoll_ctl(2)](https://man7.org/linux/man-pages/man2/epoll_ctl.2.html)。
+
+### epoll 连接空闲超时
+
+慢连接隔离保证其他连接能继续推进，空闲连接本身仍占用 fd 和缓冲区。epoll 入口支持可选的 `--idle-timeout-ms`，范围为 `0..2147483647`，默认 `0` 关闭；例如连续 5 秒没有成功收发字节时关闭连接：
+
+```bash
+./build/scheduler_server_epoll --port 9000 --backlog 128 --idle-timeout-ms 5000 --quiet
+```
+
+每条连接在 accept 时初始化 `lastActivity`；只有 `recv()` 或 `send()` 返回正字节数才续期，可读/可写通知、`EAGAIN` 和 EOF 不算活动。使用 `std::chrono::steady_clock`，避免系统日期调整影响截止时间。事件循环在等待前后清理过期连接；最近的截止时间限制 `epoll_wait()` 的等待时长，即使没有新网络事件也能触发清理。剩余毫秒向上取整，避免不足 1 ms 时以零超时反复轮询。同批返回的事件中，已到期连接先被关闭，其旧事件按连接代号跳过。
+
+当前采用每轮 O(N) 扫描连接表，不新增线程或定时器结构；关闭超时时不扫描连接表或采样活动时间。连接规模增大后可根据测量考虑堆或时间轮，但本轮没有测量扫描开销，不声称吞吐提升。毫秒等待和清理受操作系统调度及同步协议处理影响，不保证精确在截止时刻执行。
+
+这是连接空闲超时，不是整条请求的总截止时间。客户端在间隔内持续补字节仍能续期；它不能独立防止大量慢连接长期占用资源。到期直接移除 epoll 注册并释放连接：不完整输入不执行，尚未发送的用户态输出丢弃，不发送额外协议错误。已处理的注册、提交或分配不会回滚，Worker 不会注销，Job 资源也不会因 TCP 超时自动释放；故障恢复需要独立设计。接收半关闭但仍有输出的连接同样按成功发送字节续期，停滞输出最终可以被清理。
+
+阻塞入口不支持该参数，传入会报错，仍沿用单次 `recv()` 的 5 秒超时。原对比工具不传此参数，默认关闭空闲清理；历史 benchmark 和原始数据保留，不把启用超时后的结果与旧条件直接比较。
 
 ## 已实现功能
 
@@ -176,6 +193,7 @@ Linux 接口语义参考 [epoll(7)](https://man7.org/linux/man-pages/man7/epoll.
 - 独立的单线程 LT epoll 服务端，非阻塞 accept/recv/send
 - 每连接输入输出缓冲、部分发送续传、输出背压和每轮 I/O 预算
 - 单连接多条请求、半关闭后响应发送及断开清理
+- epoll 可配置连接空闲超时，成功收发续期、到期释放 fd 和连接缓冲区，默认关闭
 - 真实 C++ epoll 服务端集成测试，验证慢客户端隔离与并发领取/完成记账
 
 如果 FIFO 队首 Job 无法在任何 Worker 上运行，它会继续留在队列中，后续 Job 不会越过它。这保持了严格 FIFO，但也可能造成队头阻塞（head-of-line blocking）。
@@ -477,6 +495,18 @@ python3 tests/net/tcp_comparison_test.py ./build
 `epoll_server_integration_tests` 每个用例启动一个全新的真实 C++ 服务端，验证注册/提交/领取/完成、持久连接、分段请求、多行与不完整尾行、半关闭、128 字节边界、超长帧、无效字段、断开清理、慢客户端隔离，以及 12 个客户端同时领取时只派发一次、重复完成不会重复释放资源。各连接使用超时作为失败上限，通过完整响应和 barrier 同步，不使用固定休眠判断结果。
 
 `epoll_server_io_tests` 向通用事件循环注入 8 MiB 响应，验证跨事件的发送偏移、输出积压后的继续解析、响应顺序、半关闭后完整响应、慢读者不阻塞其他连接，以及输出仍待发送时客户端 reset 后继续服务。实际 Scheduler 协议响应较短，大响应只用于覆盖网络层的发送路径。
+
+空闲超时测试向 `EpollServer` 注入可控的单调时钟，验证截止前 1 ms 保持连接、恰好到期关闭、未完成请求不交给 handler、分段接收与正字节发送续期、独立截止时间、同时到期、积压输出清理、禁用配置及非法参数。测试推进逻辑时间，不用固定休眠等待超时。真实服务端集成测试另验证无网络事件时计时唤醒、持久连接响应后及半条请求的超时清理、连接超时不重复释放 Job 资源，以及 32 条完成请求的持久连接到期后服务端 `/proc/<PID>/fd` 数从初始值加 32 回到初始值，再正常处理新请求。CLI 覆盖负数、溢出、非数字、后缀、缺值、重复参数及显式 0；阻塞版拒绝该选项。
+
+本轮基线为提交 `d530c92`，改动前后 Release 构建及 11/11 CTest 均通过；新增 fd 回收用例也单独通过。使用下面的既有检查命令，对两个 epoll 测试运行 `-Wall -Wextra -Wpedantic`、AddressSanitizer 和 UndefinedBehaviorSanitizer，均通过且没有编译警告或 sanitizer 报告：
+
+```bash
+cmake -S . -B build/epoll-check -DCMAKE_BUILD_TYPE=Debug \
+  '-DCMAKE_CXX_FLAGS=-Wall -Wextra -Wpedantic -fsanitize=address,undefined -fno-omit-frame-pointer' \
+  '-DCMAKE_EXE_LINKER_FLAGS=-fsanitize=address,undefined'
+cmake --build build/epoll-check --target scheduler_server_epoll epoll_server_io_tests --parallel 2
+ctest --test-dir build/epoll-check --output-on-failure -R '^epoll_server_'
+```
 
 `tcp_comparison_tests` 验证两版 quiet/默认日志模式、参数校验、注册到完成的协议流程、同端口重启、每轮全新进程、交替运行顺序和原始结果保存。目标端口已被占用时，一键工具保存停止原因并退出；测试同时检查原有服务端仍可处理请求。`tcp_benchmark_tests` 还验证接收超时、连接拒绝和错误响应的失败阶段分类。
 
@@ -795,7 +825,7 @@ ctest --test-dir build/epoll-check --output-on-failure -R '^epoll_server_'
 ## 当前限制
 
 - 阻塞版串行处理连接，单次接收等待最多约 5 秒，没有整个请求的截止时间；持续缓慢发送字节可能长时间阻塞后续处理
-- epoll 版暂无空闲连接超时、连接总数配额或优雅停机；空闲/慢客户端不阻塞其他连接，但会占用 fd 和连接状态，尚未处理 fd 耗尽后的恢复
+- epoll 空闲清理默认关闭；启用后每轮 O(N) 扫描，持续补字节的慢连接仍可续期，尚无整个请求的总截止时间、连接总数配额或优雅停机，也未处理 fd 耗尽后的恢复
 - epoll 的每轮预算与输出高水位只限制网络处理，协议处理仍在事件循环中同步执行；大规模调度计算也可能影响其他客户端延迟
 - Worker 状态、等待 Job 与运行记录仅保存在内存中，服务端退出后消失
 - Worker 退出不会注销；待派发任务和运行记录可能长期保留，资源不会自动回收
