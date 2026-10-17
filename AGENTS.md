@@ -7,7 +7,9 @@
 **Primary Language:** C++  
 **Target Environment:** Linux / WSL2  
 **Build System:** CMake  
-**Current Progress:** **The core scheduler and basic blocking TCP Scheduler/Worker workflow are implemented; the next focused improvement is a non-blocking epoll server with credible end-to-end benchmarks.**
+**Current Progress:** **The core scheduler, TCP Scheduler/Worker workflow, LT epoll server, correctness tests, and reproducible blocking/epoll comparisons are implemented. The epoll optimization stage is closed for the internship-resume version.**
+
+**Current user priority:** Keep the project understandable and suitable for internship applications. Do not keep expanding epoll or add graceful shutdown, ET, a thread pool, or timer infrastructure merely to make the project appear more complete. Prioritize a runnable demonstration, honest resume evidence, and interview understanding. Further features must address a concrete user need; the full long-term roadmap is not a prerequisite for presenting this version.
 
 This project is intended to become the user's main undergraduate systems project and to support future applications for:
 
@@ -1121,7 +1123,7 @@ Never fabricate progress.
 
 # 18. Immediate Starting Point
 
-The original Phase 1 and basic TCP milestones are complete. Do not restart the project from the initial class skeleton or repeat the old Day 1 plan.
+Phase 1, the basic TCP workflow, and the focused epoll optimization milestones are complete. Do not restart historical milestones or automatically expand the networking layer.
 
 Current implemented baseline includes:
 
@@ -1134,15 +1136,18 @@ Current implemented baseline includes:
 - handling for partial sends and EINTR
 - mutex-protected shared scheduler state
 - CMake/CTest coverage and repeatable scheduler-policy benchmark
+- single-threaded non-blocking LT epoll with per-connection buffering, partial writes, backpressure, and connection cleanup
+- optional idle timeout and client connection limit, both disabled by default
+- concurrent-client correctness tests and archived blocking/epoll, backlog, and slow-client experiments
 
-The next focused milestone is **non-blocking TCP I/O with epoll**, followed by a reproducible comparison against the existing blocking server.
+The current internship version is ready to demonstrate. Keep the epoll milestone closed; use the README's implemented features, recorded experiments, and limitations for resume and interview preparation. Heartbeat/recovery, GPU resources, and real workloads remain optional future work, not automatic next steps.
 
-Before changing the server:
+For a future requested server change:
 
 1. inspect the current repository and README instead of assuming the file layout;
 2. run the existing build and tests and record the baseline result;
 3. preserve the current blocking implementation or record a reproducible baseline commit so that comparisons are meaningful;
-4. implement the smallest epoll milestone that can be built and tested independently.
+4. implement the smallest requested change that can be built and tested independently.
 
 Do not add GPU scheduling, Kubernetes, heartbeat/recovery, a thread pool, a new RPC framework, or unrelated features as part of the epoll milestone. Those are separate future decisions.
 
@@ -1375,11 +1380,13 @@ Every design decision should support that goal.
 
 When this file is first read, begin by checking the repository's actual state rather than blindly following historical milestones.
 
-> HeteroSched's core scheduler and basic blocking TCP workflow are already implemented. First inspect the code, run the current build and tests, and summarize the baseline. The next focused task is to design and implement a non-blocking epoll-based server in small, testable steps, then benchmark it against the blocking baseline. Do not restart Phase 1 or introduce unrelated AI Infra features before this work is validated.
+> HeteroSched's scheduler, TCP workflow, and measured LT epoll implementation are complete for the current internship version. Inspect the actual repository and follow the user's current request. Do not reopen epoll development or start unrelated AI Infra features just because they appear in the historical roadmap. Keep changes small, runnable, and explainable; use recorded evidence for any resume claims.
 
 ---
 
 # 24. Focused Optimization Roadmap: epoll and Non-Blocking TCP
+
+**Status: completed and closed for the current internship version.** Milestones A–E below are retained as the implementation and validation record. Known limitations are documented in README; they do not require adding more networking features before using this project on a resume.
 
 The goal is to demonstrate systems-engineering depth through correctness, concurrency, and measurement—not to maximize the number of features.
 
